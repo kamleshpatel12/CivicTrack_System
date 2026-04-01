@@ -13,7 +13,6 @@ import { VITE_BACKEND_URL } from "../config/config";
 import Player from "lottie-react";
 import emptyAnimation from "../assets/animations/empty.json";
 import HeaderAfterAuth from "../components/HeaderAfterAuth";
-import starloader from "../assets/animations/starloder.json";
 import { motion } from "framer-motion";
 import { useLoader } from "../contexts/LoaderContext";
 
@@ -46,9 +45,10 @@ const CitizenHome = () => {
       const startTime = Date.now();
 
       try {
-        const response = await fetch(`${VITE_BACKEND_URL}/api/v1/all-issues`, {
+        const response = await fetch(`${VITE_BACKEND_URL}/api/v1/all-issues?t=${Date.now()}`, {
           headers: {
             Authorization: `Bearer ${localStorage.getItem("auth_token")}`,
+            "Cache-Control": "no-cache",
           },
         });
 
@@ -98,13 +98,7 @@ const CitizenHome = () => {
   if (loading) {
     return (
       <div className="flex flex-col justify-center items-center h-screen bg-white">
-        <Player
-          autoplay
-          loop
-          animationData={starloader}
-          style={{ height: "200px", width: "200px" }}
-        />
-        <p className="text-muted-foreground mt-4">Fetching issues...</p>
+        <p className="text-muted-foreground">Loading issues...</p>
       </div>
     );
   }
@@ -119,15 +113,32 @@ const CitizenHome = () => {
       <div className="min-h-screen bg-[#f3f6f8]">
         <HeaderAfterAuth />
         <main className="container mx-auto px-4 sm:px-6 lg:px-8 py-8 pt-20 space-y-10">
-          <div className="flex items-center justify-between">
-            <div>
-              <h1 className="text-4xl font-extrabold text-[#0577b7] tracking-wide">
-                Welcome, Citizen!
-              </h1>
-              <p className="text-gray-500 mt-2 text-base">
-                Help improve your community by reporting issues
-              </p>
+          {/* Top Bar: Search and Report Button */}
+          <div className="flex items-center gap-4 flex-wrap lg:flex-nowrap">
+            <div className="flex-1 min-w-[250px]">
+              <div className="relative">
+                <Search
+                  className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-500 z-20"
+                  aria-hidden="true"
+                />
+                <Input
+                  type="text"
+                  placeholder="Search issues by city..."
+                  value={searchCity}
+                  onChange={(e) => setSearchCity(e.target.value)}
+                  className="pl-10 bg-white/70 backdrop-blur-md border border-gray-200 rounded-full placeholder:text-gray-400"
+                />
+              </div>
             </div>
+            <Link to="/citizen/create-issue">
+              <Button
+                size="lg"
+                className="bg-blue-600 text-white border-0 h-12 px-6 rounded-full shadow-lg hover:shadow-xl hover:scale-105 transition-transform duration-300 whitespace-nowrap"
+              >
+                <Plus className="h-5 w-5 mr-2" />
+                Report Issue
+              </Button>
+            </Link>
             <Link to={`/citizen/profile`}>
               <Button
                 variant="outline"
@@ -139,23 +150,14 @@ const CitizenHome = () => {
             </Link>
           </div>
 
+          {/* Welcome Section */}
           <div>
-            <h2 className="text-2xl font-semibold text-slate-600 mb-4">
-              Search Issues by Location
-            </h2>
-            <div className="relative max-w-md">
-              <Search
-                className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-500 z-20"
-                aria-hidden="true"
-              />
-              <Input
-                type="text"
-                placeholder="Enter city name..."
-                value={searchCity}
-                onChange={(e) => setSearchCity(e.target.value)}
-                className="pl-10 bg-white/70 backdrop-blur-md border border-gray-200 rounded-full placeholder:text-gray-400"
-              />
-            </div>
+            <h1 className="text-4xl font-extrabold text-[#0577b7] tracking-wide">
+              Welcome, Citizen!
+            </h1>
+            <p className="text-gray-500 mt-2 text-base">
+              Help improve your community by reporting issues
+            </p>
           </div>
 
           <div>
@@ -256,20 +258,6 @@ const CitizenHome = () => {
                 </p>
               </motion.div>
             )}
-          </div>
-
-          <div className="fixed bottom-8 right-8 z-50">
-            <Link to="/citizen/create-issue">
-              <Button
-                size="lg"
-                className="civic-gradient text-white border-0 h-14 px-6 rounded-full 
-                shadow-lg hover:shadow-2xl hover:scale-105 
-                transition-transform duration-300"
-              >
-                <Plus className="h-5 w-5 mr-2" />
-                Report New Issue
-              </Button>
-            </Link>
           </div>
         </main>
       </div>

@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { Eye, EyeOff } from "lucide-react";
-import civicIssueLogo from "../assets/civic-issue.png";
+import civicIssueLogo from "../assets/civic_logo.png";
 import { Link, useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 
@@ -215,12 +215,9 @@ const SignUp = () => {
               />
             </div>
             <div>
-              <h1 className="text-3xl font-extrabold bg-gradient-to-r from-[#016dd0] to-[#159e52] bg-clip-text text-transparent">
+              <h1 className="text-3xl font-extrabold text-foreground">
                 CivicReport
               </h1>
-              <p className="text-sm text-muted-foreground">
-                Building Better Communities
-              </p>
             </div>
           </Link>
         </div>
@@ -239,13 +236,13 @@ const SignUp = () => {
               <TabsList className="grid w-full grid-cols-2 rounded-full bg-gray-100 p-1">
                 <TabsTrigger
                   value="citizen"
-                  className="rounded-full data-[state=active]:bg-gradient-to-r data-[state=active]:from-[#016dd0] data-[state=active]:to-[#159e52] data-[state=active]:text-white"
+                  className="rounded-full"
                 >
                   Citizen
                 </TabsTrigger>
                 <TabsTrigger
                   value="admin"
-                  className="rounded-full data-[state=active]:bg-gradient-to-r data-[state=active]:from-[#016dd0] data-[state=active]:to-[#159e52] data-[state=active]:text-white"
+                  className="rounded-full"
                 >
                   Administrator
                 </TabsTrigger>

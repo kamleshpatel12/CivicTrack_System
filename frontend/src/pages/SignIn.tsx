@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { Eye, EyeOff } from "lucide-react";
-import civicIssueLogo from "../assets/civic-issue.png";
+import civicIssueLogo from "../assets/civic_logo.png";
 import { Link, useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import {
@@ -100,16 +100,13 @@ const SignIn = () => {
               <img
                 src={civicIssueLogo}
                 alt="civicIssueLogo"
-                className="w-15 h-15 object-contain"
+                className="w-14 h-14 object-contain"
               />
             </div>
             <div>
-              <h1 className="text-3xl font-extrabold bg-gradient-to-r from-[#016dd0] to-[#159e52] bg-clip-text text-transparent">
+              <h1 className="text-3xl font-extrabold text-foreground">
                 CivicReport
               </h1>
-              <p className="text-sm text-muted-foreground">
-                Building Better Communities
-              </p>
             </div>
           </Link>
         </div>
