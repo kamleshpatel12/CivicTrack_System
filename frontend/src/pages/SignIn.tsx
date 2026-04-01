@@ -131,13 +131,13 @@ const SignIn = () => {
               <TabsList className="grid w-full grid-cols-2 rounded-full bg-gray-100 p-1">
                 <TabsTrigger
                   value="citizen"
-                  className="rounded-full data-[state=active]:bg-gradient-to-r data-[state=active]:from-[#016dd0] data-[state=active]:to-[#159e52] data-[state=active]:text-white"
+                  className="rounded-full"
                 >
                   Citizen
                 </TabsTrigger>
                 <TabsTrigger
                   value="admin"
-                  className="rounded-full data-[state=active]:bg-gradient-to-r data-[state=active]:from-[#016dd0] data-[state=active]:to-[#159e52] data-[state=active]:text-white"
+                  className="rounded-full"
                 >
                   Administrator
                 </TabsTrigger>
@@ -202,7 +202,7 @@ const SignIn = () => {
                         </div>
                         <Button
                           type="submit"
-                          className="w-full bg-gradient-to-r from-[#016dd0] to-[#159e52] text-white hover:opacity-70"
+                          className="w-full"
                         >
                           Sign In as Citizen
                         </Button>
@@ -283,7 +283,7 @@ const SignIn = () => {
                         </div>
                         <Button
                           type="submit"
-                          className="w-full bg-gradient-to-r from-[#016dd0] to-[#159e52] text-white hover:opacity-70"
+                          className="w-full"
                         >
                           Sign In as Administrator
                         </Button>
