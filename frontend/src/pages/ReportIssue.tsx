@@ -1,4 +1,4 @@
-import { useCallback, useState } from "react";
+import { useState } from "react";
 import { Button } from "../components/ui/button";
 import { Input } from "../components/ui/input";
 import { Textarea } from "../components/ui/textarea";
@@ -10,9 +10,8 @@ import {
   CardTitle,
 } from "../components/ui/card";
 import { RadioGroup, RadioGroupItem } from "../components/ui/radio-group";
-import { ArrowLeft, MapPin, Upload, Send } from "lucide-react";
+import { ArrowLeft, Upload, Send } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
-import MapComponent from "../components/MapBox";
 import { toast } from "sonner";
 import { VITE_BACKEND_URL } from "../config/config";
 
@@ -21,7 +20,8 @@ const ReportIssue = () => {
   const [formData, setFormData] = useState({
     title: "",
     issueDescription: "",
-    issueLocation: "",
+    issueCity: "",
+    issueArea: "",
     issueType: "Road Infrastructure",
     location: {
       address: "",
@@ -36,21 +36,6 @@ const ReportIssue = () => {
     setFormData((prev) => ({ ...prev, [field]: value }));
   };
 
-  const handleLocationSelect = useCallback(
-    (lat: number, lng: number, address: string) => {
-      setFormData((prev) => ({
-        ...prev,
-        location: {
-          address,
-          latitude: lat,
-          longitude: lng,
-        },
-        issueLocation: address, // also update address string if you use it
-      }));
-    },
-    []
-  );
-
   const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (file) setSelectedFile(file);
@@ -62,7 +47,8 @@ const ReportIssue = () => {
     if (
       !formData.title ||
       !formData.issueDescription ||
-      !formData.location.address
+      !formData.issueCity ||
+      !formData.issueArea
     ) {
       toast.error("Please fill all required fields");
       return;
@@ -80,7 +66,8 @@ const ReportIssue = () => {
       data.append("title", formData.title);
       data.append("description", formData.issueDescription);
       data.append("issueType", formData.issueType);
-      data.append("location", JSON.stringify(formData.location)); // ✅ Location as JSON
+      const address = `${formData.issueArea}, ${formData.issueCity}`;
+      data.append("address", address);
 
       if (selectedFile) {
         data.append("files", selectedFile);
@@ -154,36 +141,7 @@ const ReportIssue = () => {
 
       {/* Main Content */}
       <main className="container mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-          {/* Map Section */}
-          <Card className="h-fit shadow-lg bg-white/80">
-            <CardHeader>
-              <CardTitle className="flex items-center space-x-2  text-slate-600">
-                <MapPin className="h-5 w-5 text-green-600" />
-                <span>Select Issue Location</span>
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="h-96 rounded-lg overflow-hidden border">
-                <MapComponent onLocationSelect={handleLocationSelect} />
-              </div>
-              {formData.location.latitude && formData.location.longitude && (
-                <div className="mt-4 p-3 bg-muted rounded-lg">
-                  <p className="text-sm font-medium">Selected Location:</p>
-                  <p className="text-xs text-muted-foreground">
-                    Lat: {formData.location.latitude.toFixed(6)}, Lng:{" "}
-                    {formData.location.longitude.toFixed(6)}
-                  </p>
-                  {formData.location.address && (
-                    <p className="text-xs text-muted-foreground mt-1">
-                      {formData.location.address}
-                    </p>
-                  )}
-                </div>
-              )}
-            </CardContent>
-          </Card>
-
+        <div className="max-w-2xl mx-auto">
           {/* Form Section */}
           <Card className="shadow-lg bg-white/80  text-slate-600">
             <CardHeader>
@@ -238,20 +196,35 @@ const ReportIssue = () => {
                     </RadioGroup>
                   </div>
 
-                  <div className="space-y-2">
-                    <Label htmlFor="issueLocation">
-                      Issue Location Address
-                    </Label>
-                    <Input
-                      id="issueLocation"
-                      type="text"
-                      value={formData.issueLocation}
-                      onChange={(e) =>
-                        handleInputChange("issueLocation", e.target.value)
-                      }
-                      placeholder="Enter or select location on map"
-                      className="shadow-sm"
-                    />
+                  <div className="space-y-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="issueCity">City *</Label>
+                      <Input
+                        id="issueCity"
+                        type="text"
+                        value={formData.issueCity}
+                        onChange={(e) =>
+                          handleInputChange("issueCity", e.target.value)
+                        }
+                        placeholder="Enter city name"
+                        className="shadow-sm"
+                        required
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="issueArea">Area / Locality *</Label>
+                      <Input
+                        id="issueArea"
+                        type="text"
+                        value={formData.issueArea}
+                        onChange={(e) =>
+                          handleInputChange("issueArea", e.target.value)
+                        }
+                        placeholder="Enter area or locality"
+                        className="shadow-sm"
+                        required
+                      />
+                    </div>
                   </div>
 
                   <div className="space-y-2">
@@ -301,7 +274,7 @@ const ReportIssue = () => {
 
                 <Button
                   type="submit"
-                  className="w-full civic-gradient border-0 text-white hover:opacity-70"
+                  className="w-full bg-blue-600 border-0 text-white hover:bg-blue-700"
                   disabled={loading}
                   size="lg"
                 >

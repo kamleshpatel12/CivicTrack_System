@@ -46,8 +46,8 @@ const Index = () => {
           />
           <Hero />
           <Features key={`features-${featuresAnimationKey}`} />
-          <IssueTypes />
           <HowItWorks key={`how-${howItWorksAnimationKey}`} />
+          <IssueTypes />
           <CTA />
           <Footer />
         </AuthProvider>
