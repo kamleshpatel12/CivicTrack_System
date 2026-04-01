@@ -16,16 +16,13 @@ const Hero = () => {
           <div className="space-y-8 animate-slide-in-left">
             <div className="space-y-4">
               <h1 className="text-4xl sm:text-5xl lg:text-6xl font-bold text-foreground leading-tight">
-                Report Issues,
+                Citizens Speak.
                 <br />
-                Transform
-                <br />
-                Your Community
+                Authorities Listen.
               </h1>
               <p className="text-xl text-muted-foreground max-w-lg">
-                Help build safer, cleaner neighborhoods by reporting
-                infrastructure issues. From potholes to broken streetlights,
-                your voice matters.
+                CivicTrack gives you a direct line to local government. Report
+                issues, track progress, and hold authorities accountable.
               </p>
             </div>
 

@@ -1,7 +1,7 @@
 import { Link } from "react-router-dom";
 import { Button } from "./ui/button.tsx";
 import { LogIn, LogOut, Shield, User } from "lucide-react";
-import civicIssueLogo from "../assets/civic-issue.png";
+import civicIssueLogo from "../assets/civic_logo.png";
 import { useAuth } from "../contexts/AuthContext.tsx";
 import { handleSupportClick } from "./SupportModel.tsx";
 
@@ -35,16 +35,13 @@ const Header: React.FC<HeaderProps> = ({
       <div className="container mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex h-16 items-center justify-between">
           <Link to="/" className="flex items-center space-x-2">
-            <div className="flex items-center justify-center w-17 h-17 rounded-lg">
-              <img src={civicIssueLogo} alt="civicIssueLogo" />
+            <div className="flex items-center justify-center w-16 h-16 rounded-full bg-white shadow">
+              <img src={civicIssueLogo} alt="civicIssueLogo" className="w-14 h-14 object-contain" />
             </div>
             <div>
               <h1 className="text-xlz font-bold text-foreground">
-                CivicIssueRepoter
+                CivicTrack
               </h1>
-              <p className="text-xs text-muted-foreground">
-                Building Better Communities
-              </p>
             </div>
           </Link>
 
@@ -133,8 +130,9 @@ const Header: React.FC<HeaderProps> = ({
                 </Link>
                 <Link to="/signup">
                   <Button
+                    variant="outline"
                     size="sm"
-                    className="flex items-center space-x-2 civic-gradient border-0 text-white hover:opacity-90"
+                    className="flex items-center space-x-2 text-slate-700"
                   >
                     <Shield className="h-4 w-4" />
                     <span>Sign Up</span>
