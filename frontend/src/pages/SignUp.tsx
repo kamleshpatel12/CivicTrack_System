@@ -54,11 +54,9 @@ const SignUp = () => {
   const [activeTab, setActiveTab] = useState("citizen");
   const navigate = useNavigate();
 
-  // Password validation: min 8 chars, uppercase, lowercase, digit, special char
+  // Password validation: min 4 chars
   const validatePassword = (password: string) => {
-    const regex =
-      /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/;
-    return regex.test(password);
+    return password.length >= 4;
   };
 
   // Citizen signup handler
@@ -68,7 +66,7 @@ const SignUp = () => {
 
     if (!validatePassword(citizenForm.password)) {
       toast.error(
-        "Password must be at least 8 characters, include uppercase, lowercase, number and special character."
+        "Password must be at least 4 characters."
       );
       return;
     }
@@ -132,7 +130,7 @@ const SignUp = () => {
 
     if (!validatePassword(adminForm.password)) {
       toast.error(
-        "Password must be at least 8 characters, include uppercase, lowercase, number and special character."
+        "Password must be at least 4 characters."
       );
       return;
     }
@@ -238,16 +236,16 @@ const SignUp = () => {
           </CardHeader>
           <CardContent>
             <Tabs value={activeTab} onValueChange={setActiveTab}>
-              <TabsList className="grid w-full grid-cols-2 rounded-full bg-gray-200/80 p-1">
+              <TabsList className="grid w-full grid-cols-2 rounded-full bg-gray-100 p-1">
                 <TabsTrigger
                   value="citizen"
-                  className="rounded-full data-[state=active]:bg-gradient-to-r data-[state=active]:from-[#016dd0] data-[state=active]:to-[#159e52] data-[state=active]:text-white opacity-80"
+                  className="rounded-full data-[state=active]:bg-gradient-to-r data-[state=active]:from-[#016dd0] data-[state=active]:to-[#159e52] data-[state=active]:text-white"
                 >
                   Citizen
                 </TabsTrigger>
                 <TabsTrigger
                   value="admin"
-                  className="rounded-full data-[state=active]:bg-gradient-to-r data-[state=active]:from-[#016dd0] data-[state=active]:to-[#159e52] data-[state=active]:text-white opacity-80"
+                  className="rounded-full data-[state=active]:bg-gradient-to-r data-[state=active]:from-[#016dd0] data-[state=active]:to-[#159e52] data-[state=active]:text-white"
                 >
                   Administrator
                 </TabsTrigger>
@@ -430,7 +428,7 @@ const SignUp = () => {
                         </div>
                         <Button
                           type="submit"
-                          className="w-full bg-gradient-to-r from-[#016dd0] to-[#159e52] text-white font-bold shadow-md hover:opacity-70 transition"
+                          className="w-full"
                         >
                           Create Citizen Account
                         </Button>
@@ -661,7 +659,7 @@ const SignUp = () => {
                         </div>
                         <Button
                           type="submit"
-                          className="w-full bg-gradient-to-r from-[#016dd0] to-[#159e52] text-white font-bold shadow-md hover:opacity-70 transition"
+                          className="w-full"
                         >
                           Create Admin Account
                         </Button>
