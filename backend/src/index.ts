@@ -5,6 +5,7 @@ import app from "./app";
 dotenv.config({ path: "./.env" });
 
 const PORT = process.env.PORT || 3000;
+
 connectDB()
   .then(() => {
     app.listen(PORT, () => {
@@ -12,6 +13,6 @@ connectDB()
     });
   })
   .catch((error) => {
-    console.log("MongoDB connection failed!\n", error);
+    console.log("MySQL connection failed!\n", error);
     process.exit(1);
   });

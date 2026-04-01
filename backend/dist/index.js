@@ -15,6 +15,6 @@ const PORT = process.env.PORT || 3000;
     });
 })
     .catch((error) => {
-    console.log("MongoDB connection failed!\n", error);
+    console.log("MySQL connection failed!\n", error);
     process.exit(1);
 });

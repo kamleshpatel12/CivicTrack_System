@@ -1,8 +1,8 @@
 import { ILocation } from "./location";
-import { Types } from "mongoose";
 
 export interface IIssue {
-  citizenId: Types.ObjectId; // reference to Citizen
+  id?: number;
+  citizenId: number;
   issueType:
     | "Road Infrastructure"
     | "Waste Management"
@@ -12,10 +12,10 @@ export interface IIssue {
     | "Other";
   title: string;
   description: string;
-  status?: "Reported" | "In Progress" | "Resolved" | "Rejected";
-  location: ILocation; // embedded location object
-  media?: Types.ObjectId[]; // refs to multimedia
+  status?: "Reported" | "In Progress" | "Resolved" | "Rejected" | "Pending";
+  location: ILocation;
+  media?: number[];
   createdAt?: Date;
   updatedAt?: Date;
-  handledBy?: Object | string; 
+  handledBy?: number; 
 }

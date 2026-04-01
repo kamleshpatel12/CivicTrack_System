@@ -1,8 +1,5 @@
-import { AdminModel } from "../models/admin.model";
-import { IssueModel } from "../models/issue.model";
 import { Request, Response } from "express";
-import { IssueStatusHistoryModel } from "../models/issueStatusHistory.model";
-import mongoose from "mongoose";
+import { queryOne, query, queryAll, insert } from "../utils/db";
 
 interface AuthRequest extends Request {
   adminId?: string;
@@ -21,7 +18,11 @@ export const getAdminProfile = async (
       return;
     }
 
-    const admin = await AdminModel.findById(id).select("-password").lean();
+    // SQL: Get admin by id (without password)
+    const admin = await queryOne(
+      "SELECT id, full_name, email, phone_number, department, admin_access_code FROM admins WHERE id = ?",
+      [id]
+    );
 
     if (!admin) {
       res.status(404).json({ message: "Admin not found" });
@@ -31,7 +32,7 @@ export const getAdminProfile = async (
     res.json(admin);
   } catch (error) {
     console.error("Error fetching admin profile:", error);
-    res.status(500).json({ message: "Internal Server Error" });
+    res.status(500).json({ message: "Internal server error" });
   }
 };
 
@@ -41,29 +42,35 @@ export const updateAdminProfile = async (
 ): Promise<void> => {
   try {
     const { id } = req.params;
-
+    const loggedInAdminId = req.adminId;
     const { fullName, email, phonenumber, department } = req.body;
 
-    if (!fullName || !email || !phonenumber || !department) {
-      res.status(400).json({ message: "All fields are required" });
+    if (id !== loggedInAdminId) {
+      res.status(403).json({ message: "Unauthorised access" });
       return;
     }
 
-    const updatedAdmin = await AdminModel.findByIdAndUpdate(
-      id,
-      { fullName, email, phonenumber, department },
-      { new: true }
+    // SQL: Check if email already exists for another admin
+    const existingAdmin = await queryOne(
+      "SELECT id FROM admins WHERE email = ? AND id != ?",
+      [email, id]
     );
 
-    if (!updatedAdmin) {
-      res.status(404).json({ message: "Admin not found" });
+    if (existingAdmin) {
+      res.status(400).json({ message: "Email already in use" });
       return;
     }
 
-    res.json({ message: "Profile updated successfully", user: updatedAdmin });
+    // SQL: Update admin profile
+    await query(
+      "UPDATE admins SET full_name = ?, email = ?, phone_number = ?, department = ? WHERE id = ?",
+      [fullName, email, phonenumber, department, id]
+    );
+
+    res.json({ message: "Profile updated successfully" });
   } catch (error) {
     console.error("Error updating admin profile:", error);
-    res.status(500).json({ message: "Internal Server Error" });
+    res.status(500).json({ message: "Internal server error" });
   }
 };
 
@@ -72,9 +79,9 @@ export const updateIssueStatus = async (
   res: Response
 ): Promise<void> => {
   try {
-    const { id } = req.params;
+    const { issueId } = req.params;
     const { status } = req.body;
-    const adminId = req.adminId;
+    const loggedInAdminId = req.adminId;
 
     const validStatuses = [
       "Reported",
@@ -83,34 +90,39 @@ export const updateIssueStatus = async (
       "Rejected",
       "Pending",
     ];
+
     if (!validStatuses.includes(status)) {
-      res.status(400).json({ message: "Invalid status value" });
+      res.status(400).json({ message: "Invalid status" });
       return;
     }
 
-    const updatedIssue = await IssueModel.findByIdAndUpdate(
-      id,
-      { status },
-      { new: true }
+    // SQL: Get old status
+    const issue = await queryOne(
+      "SELECT status, id FROM issues WHERE id = ?",
+      [issueId]
     );
 
-    if (!updatedIssue) {
+    if (!issue) {
       res.status(404).json({ message: "Issue not found" });
       return;
     }
-    // Creating a record in IssueStatusHistory for this status change
 
-    await IssueStatusHistoryModel.create({
-      issueID: new mongoose.Types.ObjectId(id),
+    // SQL: Update issue status
+    await query("UPDATE issues SET status = ?, handled_by = ? WHERE id = ?", [
       status,
-      handledBy: new mongoose.Types.ObjectId(adminId!),
-      changedBy: new mongoose.Types.ObjectId(adminId!), // original reporter, optional
-      changedAt: new Date(), // optional if timestamps enabled
-    });
+      loggedInAdminId,
+      issueId,
+    ]);
 
-    res.json({ message: "Issue updated successfully", issue: updatedIssue });
+    // SQL: Insert into status history
+    await insert(
+      "INSERT INTO issue_status_history (issue_id, old_status, new_status, changed_by) VALUES (?, ?, ?, ?)",
+      [issueId, issue.status, status, loggedInAdminId]
+    );
+
+    res.json({ message: "Issue status updated successfully" });
   } catch (error) {
-    console.error("Error updating status:", error);
+    console.error("Error updating issue status:", error);
     res.status(500).json({ message: "Internal server error" });
   }
 };
@@ -119,69 +131,26 @@ export const getHandledIssuesByAdmin = async (
   req: AuthRequest,
   res: Response
 ): Promise<void> => {
-  const authReq = req as AuthRequest;
   try {
-    const adminId = authReq.adminId; // from authMiddleware
+    const loggedInAdminId = req.adminId;
 
-    if (!adminId) {
-      res.status(401).json({ success: false, message: "Unauthorized" });
-      return;
-    }
+    // SQL: Get all issues handled by this admin
+    const issues = (await queryAll(
+      `SELECT 
+        i.id, i.title, i.description, i.issue_type, 
+        i.latitude, i.longitude, i.address, i.status, 
+        i.created_at, c.full_name
+      FROM issues i
+      LEFT JOIN citizens c ON i.citizen_id = c.id
+      WHERE i.handled_by = ?
+      ORDER BY i.updated_at DESC`,
+      [loggedInAdminId]
+    )) as any[];
 
-    const historyRecords = await IssueStatusHistoryModel.aggregate([
-  {
-    $match: {
-      handledBy: new mongoose.Types.ObjectId(adminId),
-      status: { $in: ["In Progress", "Resolved","Pending","Rejected"] },
-    },
-  },
-  {
-    $sort: { changedAt: -1 },
-  },
-  {
-    $group: {
-      _id: "$issueID",
-      latestRecord: { $first: "$$ROOT" },
-    },
-  },
-  {
-    $replaceRoot: { newRoot: "$latestRecord" },
-  },
-  {
-    $lookup: {
-      from: "issues",
-      localField: "issueID",
-      foreignField: "_id",
-      as: "issueDetails",
-    },
-  },
-  {
-    $unwind: "$issueDetails",
-  },
-  {
-    $project: {
-      status: 1,
-      handledBy: 1,
-      lastStatus: "$status",
-      lastUpdated: "$changedAt",
-      issueDetails: 1,
-    },
-  },
-]);
-const issues = historyRecords.map((record) => ({
-  ...record.issueDetails,
-  status: record.status,
-  handledBy: record.handledBy,
-  lastStatus: record.lastStatus,
-  lastUpdated: record.lastUpdated,
-  isRejected: record.status === "Rejected",
-}));
-
-
-    res.status(200).json({ success: true, issues });
+    res.json({ issues });
   } catch (error) {
     console.error("Error fetching handled issues:", error);
-    res.status(500).json({ success: false, message: "Server Error" });
+    res.status(500).json({ message: "Internal server error" });
   }
 };
 
@@ -190,25 +159,42 @@ export const deleteIssueByAdmin = async (
   res: Response
 ): Promise<void> => {
   try {
-    const loggedInAdminId = req.adminId; // from auth middleware
-    const { issueid } = req.params;
+    const { issueId } = req.params;
+    const loggedInAdminId = req.adminId;
 
-    // Validate issueid format
-    if (!mongoose.Types.ObjectId.isValid(issueid)) {
-      res.status(400).json({ message: "Invalid issue ID format" });
+    // SQL: Check if issue exists and is handled by this admin
+    const issue = await queryOne(
+      "SELECT id, handled_by FROM issues WHERE id = ?",
+      [issueId]
+    );
+
+    if (!issue) {
+      res.status(404).json({ message: "Issue not found" });
       return;
     }
-    // If allowing any admin to delete:
 
-    const result = await IssueModel.deleteOne({ _id: issueid });
-
-    if (result.deletedCount === 0) {
-      res.status(404).json({ message: "Issue not found or unauthorized" });
+    if (issue.handled_by !== loggedInAdminId) {
+      res
+        .status(403)
+        .json({ message: "You can only delete issues you have handled" });
       return;
     }
-    res.json({ message: "Deleted Successfully!" });
+
+    // SQL: Delete multimedia first (foreign key constraint)
+    await query("DELETE FROM multimedia WHERE issue_id = ?", [issueId]);
+
+    // SQL: Delete issue status history
+    await query("DELETE FROM issue_status_history WHERE issue_id = ?", [
+      issueId,
+    ]);
+
+    // SQL: Delete issue
+    await query("DELETE FROM issues WHERE id = ?", [issueId]);
+
+    res.json({ message: "Issue deleted successfully" });
   } catch (error) {
     console.error("Error deleting issue:", error);
-    res.status(500).json({ message: "Internal Server Error" });
+    res.status(500).json({ message: "Internal server error" });
   }
 };
+

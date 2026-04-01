@@ -1,8 +1,8 @@
 import { Request, Response } from "express";
 import jwt from "jsonwebtoken";
-import { CitizenModel } from "../../models/citizen.model";
-import { z } from "zod";
 import bcrypt from "bcryptjs";
+import { queryOne, insert } from "../../utils/db";
+import { z } from "zod";
 
 const signupSchema = z.object({
   fullName: z.string().min(1, { message: "Full name is required" }).trim(),
@@ -31,20 +31,26 @@ export const citizenSignup = async (
     const parsedData = signupSchema.parse(req.body);
     const { fullName, password, email, phonenumber } = parsedData;
 
-    const existingCitizen = await CitizenModel.findOne({ email });
+    // SQL: Check if citizen exists
+    const existingCitizen = await queryOne(
+      "SELECT id FROM citizens WHERE email = ?",
+      [email]
+    );
+
     if (existingCitizen) {
-      res.status(400).json({ message: " Citizen already exists" });
+      res.status(400).json({ message: "Citizen already exists" });
       return;
     }
 
+    // Hash password
     const hashedPassword = await bcrypt.hash(password, 10);
 
-    await CitizenModel.create({
-      fullName,
-      password: hashedPassword,
-      email,
-      phonenumber,
-    });
+    // SQL: Insert new citizen
+    await insert(
+      "INSERT INTO citizens (full_name, email, phone_number, password) VALUES (?, ?, ?, ?)",
+      [fullName, email, phonenumber, hashedPassword]
+    );
+
     console.log("Citizen created!");
     res.status(201).json({ message: "Citizen Signed up!" });
   } catch (err: any) {
@@ -56,7 +62,7 @@ export const citizenSignup = async (
       return;
     }
 
-    console.error("Error creating CitizenModel:", err);
+    console.error("Error creating citizen:", err);
     res
       .status(411)
       .json({ message: "Citizen already exists or another error occurred" });
@@ -69,37 +75,42 @@ export const citizenSignin = async (
 ): Promise<void> => {
   try {
     const { email, password } = req.body;
-    const existingCitizen = await CitizenModel.findOne({ email });
 
-    if (!existingCitizen) {
+    // SQL: Find citizen by email
+    const citizen = await queryOne(
+      "SELECT id, full_name, email, phone_number, password FROM citizens WHERE email = ?",
+      [email]
+    );
+
+    if (!citizen) {
       res.status(400).json({ message: "Invalid email or password" });
       return;
     }
 
-    const isPasswordValid = await bcrypt.compare(
-      password,
-      existingCitizen.password as string
-    );
+    // Verify password
+    const isPasswordValid = await bcrypt.compare(password, citizen.password);
     if (!isPasswordValid) {
       res.status(400).json({ message: "Invalid email or password" });
       return;
     }
 
+    // Generate JWT
     const token = jwt.sign(
       {
-        id: existingCitizen._id,
+        id: citizen.id,
         role: "citizen",
       },
       process.env.JWT_PASSWORD!,
       { expiresIn: "1d" }
     );
+
     res.json({
       token,
       user: {
-        id: existingCitizen._id,
-        fullName: existingCitizen.fullName,
-        email: existingCitizen.email,
-        phonenumber: existingCitizen.phonenumber,
+        id: citizen.id,
+        fullName: citizen.full_name,
+        email: citizen.email,
+        phonenumber: citizen.phone_number,
         role: "citizen",
       },
     });

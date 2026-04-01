@@ -24,7 +24,7 @@
     "dotenv": "^16.6.0",
     "express": "^5.1.0",
     "jsonwebtoken": "^9.0.2",
-    "mongoose": "^8.15.1",
+    "mysql2": "^3.6.0",
     "multer": "^2.0.1",
     "multer-storage-cloudinary": "^4.0.0",
     "react-hook-form": "^7.62.0",
@@ -36,6 +36,7 @@
     "@types/cookie-parser": "^1.4.9",
     "@types/cors": "^2.8.19",
     "@types/multer": "^2.0.0",
+    "@types/node": "^20.0.0",
     "dotenv": "^16.4.5"
   }
 }

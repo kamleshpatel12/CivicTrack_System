@@ -13,10 +13,10 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.adminSignin = exports.adminSignup = void 0;
-const admin_model_1 = require("../../models/admin.model");
 const jsonwebtoken_1 = __importDefault(require("jsonwebtoken"));
 const zod_1 = require("zod");
 const bcryptjs_1 = __importDefault(require("bcryptjs"));
+const db_1 = require("../../utils/db");
 const signupSchema = zod_1.z.object({
     fullName: zod_1.z.string().min(1, { message: "Full name is required" }).trim(),
     password: zod_1.z
@@ -41,22 +41,16 @@ const adminSignup = (req, res) => __awaiter(void 0, void 0, void 0, function* ()
     try {
         const parsedData = signupSchema.parse(req.body);
         const { fullName, password, email, phonenumber, department, adminAccessCode, } = parsedData;
-        //Check if the admin already exists
-        const existingUser = yield admin_model_1.AdminModel.findOne({ email });
+        // SQL: Check if the admin already exists
+        const existingUser = yield (0, db_1.queryOne)("SELECT id FROM admins WHERE email = ? OR admin_access_code = ?", [email, adminAccessCode]);
         if (existingUser) {
-            res.status(400).json({ message: " User already exists" });
+            res.status(400).json({ message: "User already exists" });
             return;
         }
-        //Hash password and create new admin
+        // Hash password
         const hashedPassword = yield bcryptjs_1.default.hash(password, 10);
-        yield admin_model_1.AdminModel.create({
-            fullName,
-            password: hashedPassword,
-            email,
-            phonenumber,
-            department,
-            adminAccessCode,
-        });
+        // SQL: Create new admin
+        yield (0, db_1.insert)("INSERT INTO admins (full_name, email, phone_number, password, department, admin_access_code) VALUES (?, ?, ?, ?, ?, ?)", [fullName, email, phonenumber, hashedPassword, department, adminAccessCode]);
         console.log("Admin created!");
         res.status(200).json({ message: "Admin Signed up!" });
     }
@@ -78,11 +72,8 @@ exports.adminSignup = adminSignup;
 const adminSignin = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     try {
         const { email, password, adminAccessCode } = req.body;
-        // Find admin by email and access code
-        const existingUser = yield admin_model_1.AdminModel.findOne({
-            email,
-            adminAccessCode,
-        });
+        // SQL: Find admin by email and access code
+        const existingUser = yield (0, db_1.queryOne)("SELECT id, full_name, email, phone_number, password, department, admin_access_code FROM admins WHERE email = ? AND admin_access_code = ?", [email, adminAccessCode]);
         if (!existingUser) {
             res.status(404).json({ message: "Admin not found!" });
             return;
@@ -95,18 +86,18 @@ const adminSignin = (req, res) => __awaiter(void 0, void 0, void 0, function* ()
         }
         // Generate JWT token
         const token = jsonwebtoken_1.default.sign({
-            id: existingUser._id,
+            id: existingUser.id,
             role: "admin",
         }, process.env.JWT_PASSWORD, { expiresIn: "1d" });
         res.json({
             token,
             user: {
-                id: existingUser._id,
-                fullName: existingUser.fullName,
+                id: existingUser.id,
+                fullName: existingUser.full_name,
                 email: existingUser.email,
-                adminAccessCode: existingUser.adminAccessCode,
+                adminAccessCode: existingUser.admin_access_code,
                 department: existingUser.department,
-                phonenumber: existingUser.phonenumber,
+                phonenumber: existingUser.phone_number,
                 role: "admin",
             },
         });

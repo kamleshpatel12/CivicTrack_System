@@ -1,8 +1,8 @@
 import { Request, Response } from "express";
-import { AdminModel } from "../../models/admin.model";
 import jwt from "jsonwebtoken";
 import { z } from "zod";
 import bcrypt from "bcryptjs";
+import { queryOne, insert } from "../../utils/db";
 
 const signupSchema = z.object({
   fullName: z.string().min(1, { message: "Full name is required" }).trim(),
@@ -43,24 +43,25 @@ export const adminSignup = async (
       department,
       adminAccessCode,
     } = parsedData;
-  
-    //Check if the admin already exists
-    const existingUser = await AdminModel.findOne({ email });
+
+    // SQL: Check if the admin already exists
+    const existingUser = await queryOne(
+      "SELECT id FROM admins WHERE email = ? OR admin_access_code = ?",
+      [email, adminAccessCode]
+    );
     if (existingUser) {
-      res.status(400).json({ message: " User already exists" });
+      res.status(400).json({ message: "User already exists" });
       return;
     }
 
-    //Hash password and create new admin
+    // Hash password
     const hashedPassword = await bcrypt.hash(password, 10);
-    await AdminModel.create({
-      fullName,
-      password: hashedPassword,
-      email,
-      phonenumber,
-      department,
-      adminAccessCode,
-    });
+
+    // SQL: Create new admin
+    await insert(
+      "INSERT INTO admins (full_name, email, phone_number, password, department, admin_access_code) VALUES (?, ?, ?, ?, ?, ?)",
+      [fullName, email, phonenumber, hashedPassword, department, adminAccessCode]
+    );
 
     console.log("Admin created!");
     res.status(200).json({ message: "Admin Signed up!" });
@@ -87,21 +88,18 @@ export const adminSignin = async (
   try {
     const { email, password, adminAccessCode } = req.body;
 
-    // Find admin by email and access code
-    const existingUser = await AdminModel.findOne({
-      email,
-      adminAccessCode,
-    });
+    // SQL: Find admin by email and access code
+    const existingUser = await queryOne(
+      "SELECT id, full_name, email, phone_number, password, department, admin_access_code FROM admins WHERE email = ? AND admin_access_code = ?",
+      [email, adminAccessCode]
+    );
     if (!existingUser) {
       res.status(404).json({ message: "Admin not found!" });
       return;
     }
 
     // Verify password
-    const isPasswordValid = await bcrypt.compare(
-      password,
-      existingUser.password as string
-    );
+    const isPasswordValid = await bcrypt.compare(password, existingUser.password);
     if (!isPasswordValid) {
       res.status(401).json({ message: "Invalid password" });
       return;
@@ -110,7 +108,7 @@ export const adminSignin = async (
     // Generate JWT token
     const token = jwt.sign(
       {
-        id: existingUser._id,
+        id: existingUser.id,
         role: "admin",
       },
       process.env.JWT_PASSWORD!,
@@ -120,12 +118,12 @@ export const adminSignin = async (
     res.json({
       token,
       user: {
-        id: existingUser._id,
-        fullName: existingUser.fullName,
+        id: existingUser.id,
+        fullName: existingUser.full_name,
         email: existingUser.email,
-        adminAccessCode: existingUser.adminAccessCode,
+        adminAccessCode: existingUser.admin_access_code,
         department: existingUser.department,
-        phonenumber: existingUser.phonenumber,
+        phonenumber: existingUser.phone_number,
         role: "admin",
       },
     });

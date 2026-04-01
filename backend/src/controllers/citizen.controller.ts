@@ -1,6 +1,5 @@
-import { IssueModel } from "../models/issue.model";
 import { Request, Response } from "express";
-import { CitizenModel } from "../models/citizen.model";
+import { queryOne, query, queryAll } from "../utils/db";
 
 interface AuthRequest extends Request {
   citizenId?: string;
@@ -13,9 +12,11 @@ export const getCitizenProfile = async (
   try {
     const loggedInCitizenId = req.citizenId;
 
-    const citizen = await CitizenModel.findById(loggedInCitizenId)
-      .select("-password")
-      .lean();
+    // SQL: Get citizen profile (without password)
+    const citizen = await queryOne(
+      "SELECT id, full_name, email, phone_number FROM citizens WHERE id = ?",
+      [loggedInCitizenId]
+    );
 
     if (!citizen) {
       res.status(404).json({ message: "Citizen not found" });
@@ -49,20 +50,14 @@ export const updateCitizenProfile = async (
       return;
     }
 
-    const updatedCitizen = await CitizenModel.findByIdAndUpdate(
-      id,
-      { fullName, email, phonenumber },
-      { new: true }
+    // SQL: Update citizen profile
+    await query(
+      "UPDATE citizens SET full_name = ?, email = ?, phone_number = ? WHERE id = ?",
+      [fullName, email, phonenumber, id]
     );
-
-    if (!updatedCitizen) {
-      res.status(404).json({ message: "Citizen not found" });
-      return;
-    }
 
     res.json({
       message: "Profile updated successfully",
-      citizen: updatedCitizen,
     });
   } catch (error) {
     console.error("Error updating citizen profile:", error);
@@ -80,10 +75,16 @@ export const getIssuesByCitizen = async (req: Request, res: Response) => {
       return;
     }
 
-    const issues = await IssueModel.find({ citizenId })
-      .populate("citizenId", "fullName")
-      .sort({ createdAt: -1 })
-      .lean();
+    // SQL: Get all issues reported by this citizen
+    const issues = (await queryAll(
+      `SELECT 
+        i.id, i.title, i.description, i.issue_type, 
+        i.latitude, i.longitude, i.address, i.status, i.created_at
+      FROM issues i
+      WHERE i.citizen_id = ?
+      ORDER BY i.created_at DESC`,
+      [citizenId]
+    )) as any[];
 
     res.json({ issues });
   } catch (error) {
@@ -93,30 +94,33 @@ export const getIssuesByCitizen = async (req: Request, res: Response) => {
 };
 
 export const deleteIssue = async (req: AuthRequest, res: Response) => {
-  const authReq = req as AuthRequest;
-  const issueId = req.body.issueId;
-  const result = await IssueModel.deleteOne({
-    _id: issueId,
-    citizenId: authReq.citizenId,
-  });
-
   try {
-    const { id } = req.params;
-    const loggedInCitizenId = req.citizenId;
+    const { issueId } = req.body;
+    const citizenId = req.citizenId;
 
-    if (id !== loggedInCitizenId) {
-      res.status(403).json({ message: "Unauthorised Citizen access" });
+    // SQL: Check if issue exists and is owned by this citizen
+    const issue = await queryOne(
+      "SELECT id, citizen_id FROM issues WHERE id = ? AND citizen_id = ?",
+      [issueId, citizenId]
+    );
+
+    if (!issue) {
+      res.status(404).json({ message: "Issue not found or unauthorized" });
       return;
     }
-    if (result.deletedCount === 0) {
-      res.status(404).json({
-        message: " Content not found !",
-      });
-      return;
-    }
-    res.json({
-      message: "Deleted Successfully !",
-    });
+
+    // SQL: Delete multimedia first (foreign key constraint)
+    await query("DELETE FROM multimedia WHERE issue_id = ?", [issueId]);
+
+    // SQL: Delete issue status history
+    await query("DELETE FROM issue_status_history WHERE issue_id = ?", [
+      issueId,
+    ]);
+
+    // SQL: Delete issue
+    await query("DELETE FROM issues WHERE id = ?", [issueId]);
+
+    res.json({ message: "Issue deleted successfully" });
   } catch (error) {
     console.error("Error deleting issue:", error);
     res.status(500).json({ message: "Internal Server Error" });

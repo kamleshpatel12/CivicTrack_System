@@ -13,17 +13,29 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.connectDB = void 0;
-const mongoose_1 = __importDefault(require("mongoose"));
+const promise_1 = __importDefault(require("mysql2/promise"));
 require("dotenv/config");
-const DATABASE_URL = process.env.DATABASE_URL || "";
+// Create connection pool
+const pool = promise_1.default.createPool({
+    host: process.env.DB_HOST || "localhost",
+    port: parseInt(process.env.DB_PORT || "3306"),
+    user: process.env.DB_USER || "root",
+    password: process.env.DB_PASSWORD || "",
+    database: process.env.DB_NAME || "civic_issue_db",
+    waitForConnections: true,
+    connectionLimit: 10,
+    queueLimit: 0,
+});
 const connectDB = () => __awaiter(void 0, void 0, void 0, function* () {
-    console.log("Using MongoDB URL:", process.env.DATABASE_URL);
     try {
-        yield mongoose_1.default.connect(DATABASE_URL);
-        console.log("Connected to DB !");
+        const connection = yield pool.getConnection();
+        console.log("Connected to MySQL Database!");
+        connection.release();
     }
-    catch (err) {
-        console.error("DB connection error:", err);
+    catch (error) {
+        console.error("Database connection failed:", error);
+        process.exit(1);
     }
 });
 exports.connectDB = connectDB;
+exports.default = pool;

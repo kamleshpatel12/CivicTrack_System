@@ -10,14 +10,12 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.deleteIssue = exports.getIssuesByCitizen = exports.updateCitizenProfile = exports.getCitizenProfile = void 0;
-const issue_model_1 = require("../models/issue.model");
-const citizen_model_1 = require("../models/citizen.model");
+const db_1 = require("../utils/db");
 const getCitizenProfile = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     try {
         const loggedInCitizenId = req.citizenId;
-        const citizen = yield citizen_model_1.CitizenModel.findById(loggedInCitizenId)
-            .select("-password")
-            .lean();
+        // SQL: Get citizen profile (without password)
+        const citizen = yield (0, db_1.queryOne)("SELECT id, full_name, email, phone_number FROM citizens WHERE id = ?", [loggedInCitizenId]);
         if (!citizen) {
             res.status(404).json({ message: "Citizen not found" });
             return;
@@ -43,14 +41,10 @@ const updateCitizenProfile = (req, res) => __awaiter(void 0, void 0, void 0, fun
             res.status(400).json({ message: "All fields are required" });
             return;
         }
-        const updatedCitizen = yield citizen_model_1.CitizenModel.findByIdAndUpdate(id, { fullName, email, phonenumber }, { new: true });
-        if (!updatedCitizen) {
-            res.status(404).json({ message: "Citizen not found" });
-            return;
-        }
+        // SQL: Update citizen profile
+        yield (0, db_1.query)("UPDATE citizens SET full_name = ?, email = ?, phone_number = ? WHERE id = ?", [fullName, email, phonenumber, id]);
         res.json({
             message: "Profile updated successfully",
-            citizen: updatedCitizen,
         });
     }
     catch (error) {
@@ -67,10 +61,13 @@ const getIssuesByCitizen = (req, res) => __awaiter(void 0, void 0, void 0, funct
             res.status(401).json({ message: "Unauthorized" });
             return;
         }
-        const issues = yield issue_model_1.IssueModel.find({ citizenId })
-            .populate("citizenId", "fullName")
-            .sort({ createdAt: -1 })
-            .lean();
+        // SQL: Get all issues reported by this citizen
+        const issues = (yield (0, db_1.queryAll)(`SELECT 
+        i.id, i.title, i.description, i.issue_type, 
+        i.latitude, i.longitude, i.address, i.status, i.created_at
+      FROM issues i
+      WHERE i.citizen_id = ?
+      ORDER BY i.created_at DESC`, [citizenId]));
         res.json({ issues });
     }
     catch (error) {
@@ -80,28 +77,24 @@ const getIssuesByCitizen = (req, res) => __awaiter(void 0, void 0, void 0, funct
 });
 exports.getIssuesByCitizen = getIssuesByCitizen;
 const deleteIssue = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
-    const authReq = req;
-    const issueId = req.body.issueId;
-    const result = yield issue_model_1.IssueModel.deleteOne({
-        _id: issueId,
-        citizenId: authReq.citizenId,
-    });
     try {
-        const { id } = req.params;
-        const loggedInCitizenId = req.citizenId;
-        if (id !== loggedInCitizenId) {
-            res.status(403).json({ message: "Unauthorised Citizen access" });
+        const { issueId } = req.body;
+        const citizenId = req.citizenId;
+        // SQL: Check if issue exists and is owned by this citizen
+        const issue = yield (0, db_1.queryOne)("SELECT id, citizen_id FROM issues WHERE id = ? AND citizen_id = ?", [issueId, citizenId]);
+        if (!issue) {
+            res.status(404).json({ message: "Issue not found or unauthorized" });
             return;
         }
-        if (result.deletedCount === 0) {
-            res.status(404).json({
-                message: " Content not found !",
-            });
-            return;
-        }
-        res.json({
-            message: "Deleted Successfully !",
-        });
+        // SQL: Delete multimedia first (foreign key constraint)
+        yield (0, db_1.query)("DELETE FROM multimedia WHERE issue_id = ?", [issueId]);
+        // SQL: Delete issue status history
+        yield (0, db_1.query)("DELETE FROM issue_status_history WHERE issue_id = ?", [
+            issueId,
+        ]);
+        // SQL: Delete issue
+        yield (0, db_1.query)("DELETE FROM issues WHERE id = ?", [issueId]);
+        res.json({ message: "Issue deleted successfully" });
     }
     catch (error) {
         console.error("Error deleting issue:", error);
