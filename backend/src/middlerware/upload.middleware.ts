@@ -1,15 +1,6 @@
 import multer from "multer";
-import { CloudinaryStorage } from "multer-storage-cloudinary";
-import { cloudinary } from "../config/cloudinary";
 
-const storage = new CloudinaryStorage({
-  cloudinary,
-
-  params: async (req, file) => ({
-    folder: "issues",
-    resource_type: file.mimetype.startsWith("video") ? "video" : "image",
-    public_id: `${Date.now()}-${file.originalname}`,
-  }),
-});
+// Local file storage (no longer used, kept for compatibility)
+const storage = multer.memoryStorage();
 
 export const upload = multer({ storage });

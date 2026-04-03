@@ -1,6 +1,5 @@
 import React, { useState } from "react";
 import { Eye, EyeOff } from "lucide-react";
-import civicIssueLogo from "../assets/civic_logo.png";
 import { Link, useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import {
@@ -10,17 +9,10 @@ import {
   CardHeader,
   CardTitle,
 } from "../components/ui/card";
-import {
-  Tabs,
-  TabsContent,
-  TabsList,
-  TabsTrigger,
-} from "../components/ui/tabs";
 import { Label } from "../components/ui/label";
 import { Input } from "../components/ui/input";
 import { Button } from "../components/ui/button";
 import { useAuth } from "../contexts/AuthContext";
-import { AnimatePresence, motion } from "framer-motion";
 import { useLoader } from "../contexts/LoaderContext";
 
 const SignIn = () => {
@@ -29,7 +21,7 @@ const SignIn = () => {
   const [adminForm, setAdminForm] = useState({
     email: "",
     password: "",
-    adminAccessCode: "",
+    employeeId: "",
   });
   const [activeTab, setActiveTab] = useState<"citizen" | "admin">("citizen");
 
@@ -58,7 +50,7 @@ const SignIn = () => {
             adminForm.email,
             adminForm.password,
             "admin",
-            adminForm.adminAccessCode
+            adminForm.employeeId
           ),
           minLoaderDuration,
         ]).then(([res]) => res);
@@ -95,16 +87,9 @@ const SignIn = () => {
 
       <div className="w-full max-w-md">
         <div className="text-center mb-8">
-          <Link to="/" className="inline-flex items-center space-x-2 mb-4">
-            <div className="flex items-center justify-center w-16 h-16 rounded-full bg-white shadow">
-              <img
-                src={civicIssueLogo}
-                alt="civicIssueLogo"
-                className="w-14 h-14 object-contain"
-              />
-            </div>
+          <Link to="/" className="inline-flex items-center space-x-2 mb-4 justify-center">
             <div>
-              <h1 className="text-3xl font-extrabold text-foreground">
+              <h1 className="text-4xl font-extrabold text-foreground">
                 CivicReport
               </h1>
             </div>
@@ -121,190 +106,165 @@ const SignIn = () => {
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <Tabs
-              value={activeTab}
-              onValueChange={(val) => setActiveTab(val as any)}
-            >
-              <TabsList className="grid w-full grid-cols-2 rounded-full bg-gray-100 p-1">
-                <TabsTrigger
-                  value="citizen"
-                  className="rounded-full"
+            <div className="border-b border-gray-200 mb-6">
+              <div className="flex space-x-2">
+                <button
+                  onClick={() => setActiveTab("citizen")}
+                  className={`px-4 py-2 font-medium transition-colors ${
+                    activeTab === "citizen"
+                      ? "text-black border-b-2 border-black"
+                      : "text-gray-600 border-b-2 border-transparent"
+                  }`}
                 >
                   Citizen
-                </TabsTrigger>
-                <TabsTrigger
-                  value="admin"
-                  className="rounded-full"
+                </button>
+                <button
+                  onClick={() => setActiveTab("admin")}
+                  className={`px-4 py-2 font-medium transition-colors ${
+                    activeTab === "admin"
+                      ? "text-black border-b-2 border-black"
+                      : "text-gray-600 border-b-2 border-transparent"
+                  }`}
                 >
                   Administrator
-                </TabsTrigger>
-              </TabsList>
-
-              <AnimatePresence mode="wait">
-                {activeTab === "citizen" && (
-                  <TabsContent value="citizen" forceMount>
-                    <motion.div
-                      key="citizen"
-                      initial={{ opacity: 0, x: 20 }}
-                      animate={{ opacity: 1, x: 0 }}
-                      exit={{ opacity: 0, x: -20 }}
-                      transition={{ duration: 0.3 }}
-                      className="mt-6"
-                    >
-                      <form onSubmit={handleSignIn} className="space-y-4">
-                        <div>
-                          <Label htmlFor="citizen-email">Email</Label>
-                          <Input
-                            id="citizen-email"
-                            type="email"
-                            value={citizenForm.email}
-                            onChange={(e) =>
-                              setCitizenForm({
-                                ...citizenForm,
-                                email: e.target.value,
-                              })
-                            }
-                            required
-                          />
-                        </div>
-                        <div>
-                          <Label htmlFor="citizen-password">Password</Label>
-                          <div className="relative">
-                            <Input
-                              id="citizen-password"
-                              type={showPassword ? "text" : "password"}
-                              value={citizenForm.password}
-                              onChange={(e) =>
-                                setCitizenForm({
-                                  ...citizenForm,
-                                  password: e.target.value,
-                                })
-                              }
-                              required
-                            />
-                            <Button
-                              type="button"
-                              variant="ghost"
-                              size="sm"
-                              className="absolute right-0 top-0 h-full px-3 py-2"
-                              onClick={() => setShowPassword(!showPassword)}
-                            >
-                              {showPassword ? (
-                                <EyeOff className="h-4 w-4" />
-                              ) : (
-                                <Eye className="h-4 w-4" />
-                              )}
-                            </Button>
-                          </div>
-                        </div>
-                        <Button
-                          type="submit"
-                          className="w-full"
-                        >
-                          Sign In as Citizen
-                        </Button>
-                      </form>
-                    </motion.div>
-                  </TabsContent>
-                )}
-
-                {activeTab === "admin" && (
-                  <TabsContent value="admin" forceMount>
-                    <motion.div
-                      key="admin"
-                      initial={{ opacity: 0, x: 20 }}
-                      animate={{ opacity: 1, x: 0 }}
-                      exit={{ opacity: 0, x: -20 }}
-                      transition={{ duration: 0.3 }}
-                      className="mt-6"
-                    >
-                      <form onSubmit={handleSignIn} className="space-y-4">
-                        <div>
-                          <Label htmlFor="admin-email">Email</Label>
-                          <Input
-                            id="admin-email"
-                            type="email"
-                            value={adminForm.email}
-                            onChange={(e) =>
-                              setAdminForm({
-                                ...adminForm,
-                                email: e.target.value,
-                              })
-                            }
-                            required
-                          />
-                        </div>
-                        <div>
-                          <Label htmlFor="admin-password">Password</Label>
-                          <div className="relative">
-                            <Input
-                              id="admin-password"
-                              type={showPassword ? "text" : "password"}
-                              value={adminForm.password}
-                              onChange={(e) =>
-                                setAdminForm({
-                                  ...adminForm,
-                                  password: e.target.value,
-                                })
-                              }
-                              required
-                            />
-                            <Button
-                              type="button"
-                              variant="ghost"
-                              size="sm"
-                              className="absolute right-0 top-0 h-full px-3 py-2"
-                              onClick={() => setShowPassword(!showPassword)}
-                            >
-                              {showPassword ? (
-                                <EyeOff className="h-4 w-4" />
-                              ) : (
-                                <Eye className="h-4 w-4" />
-                              )}
-                            </Button>
-                          </div>
-                        </div>
-                        <div>
-                          <Label htmlFor="admin-code">Admin Code</Label>
-                          <Input
-                            id="admin-code"
-                            value={adminForm.adminAccessCode}
-                            onChange={(e) =>
-                              setAdminForm({
-                                ...adminForm,
-                                adminAccessCode: e.target.value,
-                              })
-                            }
-                            required
-                          />
-                        </div>
-                        <Button
-                          type="submit"
-                          className="w-full"
-                        >
-                          Sign In as Administrator
-                        </Button>
-                      </form>
-                    </motion.div>
-                  </TabsContent>
-                )}
-              </AnimatePresence>
-
-              <div className="mt-6 text-center">
-                <p className="text-sm text-muted-foreground">
-                  Don{"'"}t have an account?{" "}
-                  <Link to="/signup" className="text-primary hover:underline">
-                    Sign up here
-                  </Link>
-                </p>
-                <Link
-                  to="/"
-                  className="text-sm text-muted-foreground hover:text-primary"
-                >
-                  ← Back to Home
-                </Link>
+                </button>
               </div>
-            </Tabs>
+            </div>
+
+            {activeTab === "citizen" && (
+              <form onSubmit={handleSignIn} className="space-y-4">
+                <div>
+                  <Label htmlFor="citizen-email">Email</Label>
+                  <Input
+                    id="citizen-email"
+                    type="email"
+                    value={citizenForm.email}
+                    onChange={(e) =>
+                      setCitizenForm({
+                        ...citizenForm,
+                        email: e.target.value,
+                      })
+                    }
+                    required
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="citizen-password">Password</Label>
+                  <div className="relative">
+                    <Input
+                      id="citizen-password"
+                      type={showPassword ? "text" : "password"}
+                      value={citizenForm.password}
+                      onChange={(e) =>
+                        setCitizenForm({
+                          ...citizenForm,
+                          password: e.target.value,
+                        })
+                      }
+                      required
+                    />
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      className="absolute right-0 top-0 h-full px-3 py-2"
+                      onClick={() => setShowPassword(!showPassword)}
+                    >
+                      {showPassword ? (
+                        <EyeOff className="h-4 w-4" />
+                      ) : (
+                        <Eye className="h-4 w-4" />
+                      )}
+                    </Button>
+                  </div>
+                </div>
+                <Button type="submit" className="w-full">
+                  Sign In as Citizen
+                </Button>
+              </form>
+            )}
+
+            {activeTab === "admin" && (
+              <form onSubmit={handleSignIn} className="space-y-4">
+                <div>
+                  <Label htmlFor="admin-email">Email</Label>
+                  <Input
+                    id="admin-email"
+                    type="email"
+                    value={adminForm.email}
+                    onChange={(e) =>
+                      setAdminForm({
+                        ...adminForm,
+                        email: e.target.value,
+                      })
+                    }
+                    required
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="admin-password">Password</Label>
+                  <div className="relative">
+                    <Input
+                      id="admin-password"
+                      type={showPassword ? "text" : "password"}
+                      value={adminForm.password}
+                      onChange={(e) =>
+                        setAdminForm({
+                          ...adminForm,
+                          password: e.target.value,
+                        })
+                      }
+                      required
+                    />
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      className="absolute right-0 top-0 h-full px-3 py-2"
+                      onClick={() => setShowPassword(!showPassword)}
+                    >
+                      {showPassword ? (
+                        <EyeOff className="h-4 w-4" />
+                      ) : (
+                        <Eye className="h-4 w-4" />
+                      )}
+                    </Button>
+                  </div>
+                </div>
+                <div>
+                  <Label htmlFor="admin-code">Employee ID</Label>
+                  <Input
+                    id="admin-code"
+                    value={adminForm.employeeId}
+                    onChange={(e) =>
+                      setAdminForm({
+                        ...adminForm,
+                        employeeId: e.target.value,
+                      })
+                    }
+                    required
+                  />
+                </div>
+                <Button type="submit" className="w-full">
+                  Sign In as Administrator
+                </Button>
+              </form>
+            )}
+
+            <div className="mt-6 text-center">
+              <p className="text-sm text-muted-foreground">
+                Don{"'"}t have an account?{" "}
+                <Link to="/signup" className="text-primary hover:underline">
+                  Sign up here
+                </Link>
+              </p>
+              <Link
+                to="/"
+                className="text-sm text-muted-foreground hover:text-primary"
+              >
+                ← Back to Home
+              </Link>
+            </div>
           </CardContent>
         </Card>
       </div>

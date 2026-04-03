@@ -75,12 +75,13 @@ export const getIssuesByCitizen = async (req: Request, res: Response) => {
       return;
     }
 
-    // SQL: Get all issues reported by this citizen
+    // SQL: Get all issues reported by this citizen with issue type details
     const issues = (await queryAll(
       `SELECT 
-        i.id, i.title, i.description, i.issue_type, 
-        i.latitude, i.longitude, i.address, i.status, i.created_at
+        i.id, i.title, i.description, i.issue_type_id, 
+        it.type_name, i.address, i.status, i.created_at
       FROM issues i
+      LEFT JOIN issue_types it ON i.issue_type_id = it.id
       WHERE i.citizen_id = ?
       ORDER BY i.created_at DESC`,
       [citizenId]
@@ -108,9 +109,6 @@ export const deleteIssue = async (req: AuthRequest, res: Response) => {
       res.status(404).json({ message: "Issue not found or unauthorized" });
       return;
     }
-
-    // SQL: Delete multimedia first (foreign key constraint)
-    await query("DELETE FROM multimedia WHERE issue_id = ?", [issueId]);
 
     // SQL: Delete issue status history
     await query("DELETE FROM issue_status_history WHERE issue_id = ?", [

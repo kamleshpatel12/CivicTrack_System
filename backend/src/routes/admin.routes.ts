@@ -7,6 +7,8 @@ import { authMiddleware } from "../middlerware/auth.middleware";
 import {
   deleteIssueByAdmin,
   getAdminProfile,
+  getAdminDepartment,
+  getDepartments,
   getHandledIssuesByAdmin,
   updateAdminProfile,
   updateIssueStatus,
@@ -18,6 +20,10 @@ const router = Router();
 router.post("/admin/signup", adminSignup);
 
 router.post("/admin/signin", adminSignin);
+
+router.get("/admin/departments", getDepartments);
+
+router.get("/admin/department", authMiddleware, getAdminDepartment);
 
 router.get("/admin/profile/:id", authMiddleware, getAdminProfile);
 

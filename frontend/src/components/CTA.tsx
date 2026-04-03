@@ -1,73 +1,46 @@
 import { Link } from "react-router-dom";
 import { Button } from "./ui/button";
-import { ArrowRight, Shield, Users } from "lucide-react";
-import { handleSupportClick } from "./SupportModel";
 
 const CTA = () => {
   return (
-    <section className="py-20 relative overflow-hidden">
-      <div className="absolute inset-0 civic-gradient opacity-95"></div>
-
-      <div className="container mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
-        <div className="max-w-4xl mx-auto text-center animate-fade-in">
-          <h2 className="text-3xl sm:text-4xl lg:text-5xl font-bold text-white mb-6">
-            Take the First Step Towards Better Governance.
+    <section className="py-16 bg-slate-100">
+      <div className="container mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="max-w-3xl mx-auto text-center">
+          <h2 className="text-2xl sm:text-3xl font-bold text-slate-900 mb-6">
+            Get Started with CivicTrack
           </h2>
-          <p className="text-xl text-white/90 mb-12 max-w-2xl mx-auto">
-            CivicTrack empowers citizens to actively participate in local administration — making cities more responsive, transparent and accountable.
+          <p className="text-slate-600 mb-10">
+            Choose your role to access the application
           </p>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 max-w-2xl mx-auto mb-12">
-            <div className="bg-white/10 backdrop-blur rounded-lg p-6 text-center">
-              <Users className="h-12 w-12 text-white mx-auto mb-4" />
-              <h3 className="text-lg font-semibold text-white mb-2">
-                For Citizens
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="bg-white border border-slate-200 rounded-lg p-8 text-center">
+              <h3 className="text-lg font-semibold text-slate-900 mb-3">
+                Citizen
               </h3>
-              <p className="text-white/80 text-sm mb-4">
-                Report issues, track progress, and engage with your community
+              <p className="text-slate-600 text-sm mb-6">
+                Report issues and track their status
               </p>
-              <Link to="/citizen">
-                <Button
-                  variant="secondary"
-                  className="w-full flex items-center justify-center space-x-2"
-                >
-                  <span>Get Started</span>
-                  <ArrowRight className="h-4 w-4" />
+              <Link to="/citizen" className="w-full">
+                <Button variant="outline" className="w-full">
+                  Enter as Citizen
                 </Button>
               </Link>
             </div>
 
-            <div className="bg-white/10 backdrop-blur rounded-lg p-6 text-center">
-              <Shield className="h-12 w-12 text-white mx-auto mb-4" />
-              <h3 className="text-lg font-semibold text-white mb-2">
-                For Administrators
+            <div className="bg-white border border-slate-200 rounded-lg p-8 text-center">
+              <h3 className="text-lg font-semibold text-slate-900 mb-3">
+                Administrator
               </h3>
-              <p className="text-white/80 text-sm mb-4">
-                Manage reports, coordinate responses, and track city-wide data
+              <p className="text-slate-600 text-sm mb-6">
+                Manage and resolve reported issues
               </p>
-              <Link to="/admin">
-                <Button
-                  variant="secondary"
-                  className="w-full flex items-center justify-center space-x-2"
-                >
-                  <span>Admin Access</span>
-                  <ArrowRight className="h-4 w-4" />
+              <Link to="/admin" className="w-full">
+                <Button variant="outline" className="w-full">
+                  Enter as Admin
                 </Button>
               </Link>
             </div>
-          </div>
-
-          <div className="text-center">
-            <p className="text-white/80 mb-4">
-              Questions? Contact our support team
-            </p>
-            <Button
-              variant="outline"
-              onClick={handleSupportClick}
-              className="bg-white/10 border-white/20 text-white hover:bg-white/20"
-            >
-              Get Support
-            </Button>
           </div>
         </div>
       </div>

@@ -8,6 +8,8 @@ const issues_controllers_1 = require("../controllers/issues.controllers");
 const router = (0, express_1.Router)();
 router.post("/admin/signup", admin_auth_controller_1.adminSignup);
 router.post("/admin/signin", admin_auth_controller_1.adminSignin);
+router.get("/admin/departments", admin_controller_1.getDepartments);
+router.get("/admin/department", auth_middleware_1.authMiddleware, admin_controller_1.getAdminDepartment);
 router.get("/admin/profile/:id", auth_middleware_1.authMiddleware, admin_controller_1.getAdminProfile);
 router.get("/admin/issues", auth_middleware_1.authMiddleware, issues_controllers_1.getIssues);
 router.get("/admin/handled-issues", auth_middleware_1.authMiddleware, admin_controller_1.getHandledIssuesByAdmin);

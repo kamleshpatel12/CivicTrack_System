@@ -29,27 +29,30 @@ const signupSchema = zod_1.z.object({
         .length(10, { message: "Phone number must be exactly 10 digits" })
         .trim(),
     department: zod_1.z.string().trim(),
-    adminAccessCode: zod_1.z
-        .number()
-        .int()
-        .min(1000, { message: "Admin access code must be at least 4 digits" }),
+    employeeId: zod_1.z.string().min(3, { message: "Employee ID is required" }).trim(),
 });
 const adminSignup = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     try {
         const parsedData = signupSchema.parse(req.body);
-        const { fullName, password, email, phonenumber, department, adminAccessCode, } = parsedData;
+        const { fullName, password, email, phonenumber, department, employeeId, } = parsedData;
         // SQL: Check if the admin already exists
-        const existingUser = yield (0, db_1.queryOne)("SELECT id FROM admins WHERE email = ? OR admin_access_code = ?", [email, adminAccessCode]);
+        const existingUser = yield (0, db_1.queryOne)("SELECT id FROM admins WHERE email = ? OR employee_id = ?", [email, employeeId]);
         if (existingUser) {
             res.status(400).json({ message: "User already exists" });
             return;
         }
+        // SQL: Get department ID (default to 1 if not found)
+        const depResult = yield (0, db_1.queryOne)("SELECT id FROM departments WHERE department_name = ? LIMIT 1", [department]);
+        const departmentId = (depResult === null || depResult === void 0 ? void 0 : depResult.id) || 1;
         // Hash password
         const hashedPassword = yield bcryptjs_1.default.hash(password, 10);
         // SQL: Create new admin
-        yield (0, db_1.insert)("INSERT INTO admins (full_name, email, phone_number, password, department, admin_access_code) VALUES (?, ?, ?, ?, ?, ?)", [fullName, email, phonenumber, hashedPassword, department, adminAccessCode]);
-        console.log("Admin created!");
-        res.status(200).json({ message: "Admin Signed up!" });
+        const adminId = yield (0, db_1.insert)("INSERT INTO admins (full_name, email, phone_number, password, department_id, employee_id, is_active) VALUES (?, ?, ?, ?, ?, ?, ?)", [fullName, email, phonenumber, hashedPassword, departmentId, employeeId, true]);
+        console.log("Admin created with ID:", adminId);
+        res.status(200).json({
+            message: "Admin Signed up!",
+            adminId: adminId
+        });
     }
     catch (err) {
         if (err.name === "ZodError") {
@@ -61,16 +64,27 @@ const adminSignup = (req, res) => __awaiter(void 0, void 0, void 0, function* ()
         }
         console.error("Error creating admin:", err);
         res
-            .status(411)
-            .json({ message: "Admin already exists or another error occurred" });
+            .status(500)
+            .json({ message: "Error creating admin account. Please try again." });
     }
 });
 exports.adminSignup = adminSignup;
 const adminSignin = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     try {
-        const { email, password, adminAccessCode } = req.body;
-        // SQL: Find admin by email and access code
-        const existingUser = yield (0, db_1.queryOne)("SELECT id, full_name, email, phone_number, password, department, admin_access_code FROM admins WHERE email = ? AND admin_access_code = ?", [email, adminAccessCode]);
+        const { email, password, employeeId } = req.body;
+        // SQL: Find admin by email and employee_id with department info
+        const existingUser = yield (0, db_1.queryOne)(`SELECT 
+        a.id, 
+        a.full_name, 
+        a.email, 
+        a.phone_number, 
+        a.password, 
+        a.department_id,
+        a.employee_id,
+        d.department_name as department
+      FROM admins a
+      LEFT JOIN departments d ON a.department_id = d.id
+      WHERE a.email = ? AND a.employee_id = ? AND a.is_active = TRUE`, [email, employeeId]);
         if (!existingUser) {
             res.status(404).json({ message: "Admin not found!" });
             return;
@@ -92,8 +106,8 @@ const adminSignin = (req, res) => __awaiter(void 0, void 0, void 0, function* ()
                 id: existingUser.id,
                 fullName: existingUser.full_name,
                 email: existingUser.email,
-                adminAccessCode: existingUser.admin_access_code,
-                department: existingUser.department,
+                employeeId: existingUser.employee_id,
+                department: existingUser.department || "Unknown",
                 phonenumber: existingUser.phone_number,
                 role: "admin",
             },

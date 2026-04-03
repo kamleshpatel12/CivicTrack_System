@@ -30,24 +30,20 @@ import { Link } from "react-router-dom";
 import { VITE_BACKEND_URL } from "../config/config";
 import HeaderAfterAuth from "../components/HeaderAfterAuth";
 import { motion } from "framer-motion";
-import Player from "lottie-react";
-import starloader from "../assets/animations/starloder.json";
 import { useLoader } from "../contexts/LoaderContext";
 
 interface Issues {
-  _id: string;
+  id: string;
   title: string;
   description: string;
-  type: string;
-  location: {
-    address: string;
-    latitude: number;
-    longitude: number;
-  };
-  reportedBy: string;
-  reportedAt: string;
-  image: string;
+  issue_type_id: string;
+  type_name: string;
+  address: string;
+  full_name: string;
+  created_at: string;
+  updated_at: string;
   status: string;
+  department_name: string;
 }
 
 const AdminHome = () => {
@@ -57,12 +53,34 @@ const AdminHome = () => {
   const [statusFilters, setStatusFilters] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
   const [issues, setIssues] = useState<Issues[]>([]);
+  const [departmentName, setDepartmentName] = useState<string>("");
+  const [departmentId, setDepartmentId] = useState<string>("");
   const { hideLoader } = useLoader();
+
+  useEffect(() => {
+    const fetchDepartmentInfo = async () => {
+      try {
+        const response = await fetch(`${VITE_BACKEND_URL}/api/v1/admin/department`, {
+          headers: {
+            Authorization: `Bearer ${localStorage.getItem("auth_token")}`,
+          },
+        });
+        const data = await response.json();
+        setDepartmentName(data.departmentName || "Unknown");
+        setDepartmentId(data.departmentId || "");
+      } catch (error) {
+        console.error("Error fetching department info:", error);
+        setDepartmentName("Unknown");
+      }
+    };
+
+    fetchDepartmentInfo();
+  }, []);
 
   useEffect(() => {
     const fetchIssues = async () => {
       try {
-        const response = await fetch(`${VITE_BACKEND_URL}/api/v1/all-issues`, {
+        const response = await fetch(`${VITE_BACKEND_URL}/api/v1/admin/issues`, {
           headers: {
             Authorization: `Bearer ${localStorage.getItem("auth_token")}`,
           },
@@ -158,7 +176,7 @@ const AdminHome = () => {
     const searchMatch =
       issue.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
       issue.description.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      issue.location.address.toLowerCase().includes(searchQuery.toLowerCase());
+      issue.address.toLowerCase().includes(searchQuery.toLowerCase());
     const statusMatch =
       statusFilters.length === 0 || statusFilters.includes(issue.status);
     return searchMatch && statusMatch;
@@ -182,12 +200,6 @@ const AdminHome = () => {
   if (loading) {
     return (
       <div className="flex flex-col justify-center items-center h-screen bg-white">
-        <Player
-          autoplay
-          loop
-          animationData={starloader}
-          style={{ height: "200px", width: "200px" }}
-        />
         <p className="text-muted-foreground mt-4">Fetching issues...</p>
       </div>
     );
@@ -393,9 +405,9 @@ const AdminHome = () => {
               </TableHeader>
               <TableBody>
                 {filteredIssues.map((issue) => (
-                  <TableRow key={issue._id}>
+                  <TableRow key={issue.id}>
                     <TableCell className="font-medium">{issue.title}</TableCell>
-                    <TableCell>{issue.location.address}</TableCell>
+                    <TableCell>{issue.address}</TableCell>
                     <TableCell>
                       <Badge className={getStatusColor(issue.status)}>
                         {issue.status}
@@ -412,7 +424,7 @@ const AdminHome = () => {
                           <DropdownMenuContent align="end">
                             <button
                               onClick={() =>
-                                handleStatusUpdate(issue._id, "Resolved")
+                                handleStatusUpdate(issue.id, "Resolved")
                               }
                               className="block w-full text-left px-4 py-2 hover:bg-gray-100"
                             >
@@ -420,7 +432,7 @@ const AdminHome = () => {
                             </button>
                             <button
                               onClick={() =>
-                                handleStatusUpdate(issue._id, "In Progress")
+                                handleStatusUpdate(issue.id, "In Progress")
                               }
                               className="block w-full text-left px-4 py-2 hover:bg-gray-100"
                             >
@@ -428,7 +440,7 @@ const AdminHome = () => {
                             </button>
                             <button
                               onClick={() =>
-                                handleStatusUpdate(issue._id, "Rejected")
+                                handleStatusUpdate(issue.id, "Rejected")
                               }
                               className="block w-full text-left px-4 py-2 hover:bg-gray-100"
                             >
@@ -436,7 +448,7 @@ const AdminHome = () => {
                             </button>
                             <button
                               onClick={() =>
-                                handleStatusUpdate(issue._id, "Pending")
+                                handleStatusUpdate(issue.id, "Pending")
                               }
                               className="block w-full text-left px-4 py-2 hover:bg-gray-100"
                             >
@@ -447,7 +459,7 @@ const AdminHome = () => {
                         <Button
                           variant="ghost"
                           size="icon"
-                          onClick={() => handleDeleteIssue(issue._id)}
+                          onClick={() => handleDeleteIssue(issue.id)}
                         >
                           <Trash2 className="h-4 w-4 text-gray-500 " />
                         </Button>
