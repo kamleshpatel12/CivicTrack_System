@@ -50,39 +50,8 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const [isLoading, setIsLoading] = useState(true);
 
   const fetchProfile = async () => {
-    try {
-      const token = localStorage.getItem("auth_token");
-      const storedRole = localStorage.getItem("auth_role");
-      const storedUserId = localStorage.getItem("auth_user_id");
-
-      if (!token || !storedRole || !storedUserId) {
-        console.warn("Missing token or user info in localStorage");
-        return;
-      }
-
-      const endpoint =
-        storedRole === "admin"
-          ? `admin/profile/${storedUserId}`
-          : `citizen/profile/${storedUserId}`;
-
-      const response = await fetch(`${VITE_BACKEND_URL}/api/v1/${endpoint}`, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-          "Content-Type": "application/json",
-        },
-      });
-
-      const result = await response.json();
-
-      if (response.ok) {
-        setUser(result);
-        localStorage.setItem("auth_user", JSON.stringify(result));
-      } else {
-        console.error("Failed to fetch profile:", result.message);
-      }
-    } catch (error) {
-      console.error("Error fetching profile:", error);
-    }
+    // Profile endpoints not yet implemented - user data is sufficient from auth response
+    // This can be added later if profile fetch is needed
   };
 
   useEffect(() => {
@@ -111,7 +80,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     email: string,
     password: string,
     role: "citizen" | "admin",
-    adminAccessCode?: string
+    employeeId?: string
   ) => {
     setIsLoading(true);
     try {
@@ -124,13 +93,13 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         return false;
       }
 
-      if (role === "admin" && !adminAccessCode) {
-        alert("Admin access code is required for admin login.");
+      if (role === "admin" && !employeeId) {
+        alert("Employee ID is required for admin login.");
         return false;
       }
 
-      if (role === "admin" && adminAccessCode) {
-        body.adminAccessCode = adminAccessCode;
+      if (role === "admin" && employeeId) {
+        body.employeeId = employeeId;
       }
 
       const response = await fetch(`${VITE_BACKEND_URL}/api/v1/${endpoint}`, {

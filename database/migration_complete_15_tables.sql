@@ -1,24 +1,29 @@
--- ================================================================================
--- CivicTrack DBMS - Complete Database Migration Script
--- 15 Tables: Reference + Entity + Transaction + Detail + Feedback
--- ================================================================================
+-- CivicTrack DBMS - Normalized Database Design
+-- Core Tables: citizens, admins, issues, issue_status_history
+-- Reference Tables: departments, designations, issue_types, locations, priority_levels
 
 -- Drop existing tables (if exist) in reverse order of dependencies
-DROP TABLE IF EXISTS notifications;
-DROP TABLE IF EXISTS issue_reviews;
-DROP TABLE IF EXISTS issue_comments;
-DROP TABLE IF EXISTS issue_assignments_history;
-DROP TABLE IF EXISTS multimedia;
+-- Disable foreign key checks temporarily to allow dropping all tables
+SET FOREIGN_KEY_CHECKS = 0;
+
 DROP TABLE IF EXISTS issue_status_history;
 DROP TABLE IF EXISTS issues;
+DROP TABLE IF EXISTS multimedia;
+DROP TABLE IF EXISTS issue_comments;
+DROP TABLE IF EXISTS issue_assignments_history;
+DROP TABLE IF EXISTS issue_review;
+DROP TABLE IF EXISTS issue_categories;
+DROP TABLE IF EXISTS issue_assignments_h;
 DROP TABLE IF EXISTS admins;
 DROP TABLE IF EXISTS citizens;
 DROP TABLE IF EXISTS priority_levels;
 DROP TABLE IF EXISTS locations;
-DROP TABLE IF EXISTS issue_categories;
 DROP TABLE IF EXISTS issue_types;
 DROP TABLE IF EXISTS designations;
 DROP TABLE IF EXISTS departments;
+
+-- Re-enable foreign key checks
+SET FOREIGN_KEY_CHECKS = 1;
 
 -- ================================================================================
 -- REFERENCE TABLES (Lookup/Master Data)
@@ -28,11 +33,8 @@ DROP TABLE IF EXISTS departments;
 CREATE TABLE departments (
     id INT PRIMARY KEY AUTO_INCREMENT,
     department_name VARCHAR(100) NOT NULL UNIQUE,
-    description TEXT,
     budget DECIMAL(15, 2),
     head_admin_id INT,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     INDEX idx_department_name (department_name)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
@@ -53,54 +55,30 @@ CREATE TABLE issue_types (
     type_name VARCHAR(100) NOT NULL UNIQUE,
     description TEXT,
     department_id INT,
-    severity_level VARCHAR(20) DEFAULT 'Medium',
-    avg_resolution_days INT,
-    CONSTRAINT chk_severity_level CHECK (severity_level IN ('Low', 'Medium', 'High', 'Critical')),
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     CONSTRAINT fk_issue_type_dept FOREIGN KEY (department_id) REFERENCES departments(id) ON DELETE SET NULL,
     INDEX idx_type_name (type_name),
     INDEX idx_department_id (department_id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
--- Table 4: ISSUE_CATEGORIES
-CREATE TABLE issue_categories (
-    id INT PRIMARY KEY AUTO_INCREMENT,
-    issue_type_id INT NOT NULL,
-    category_name VARCHAR(100) NOT NULL,
-    description TEXT,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-    CONSTRAINT fk_category_type FOREIGN KEY (issue_type_id) REFERENCES issue_types(id) ON DELETE CASCADE,
-    UNIQUE(issue_type_id, category_name),
-    INDEX idx_type_id (issue_type_id)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
-
--- Table 5: LOCATIONS
+-- Table 4: LOCATIONS
 CREATE TABLE locations (
     id INT PRIMARY KEY AUTO_INCREMENT,
     city VARCHAR(100) NOT NULL,
     area_name VARCHAR(100) NOT NULL,
     locality VARCHAR(100),
-    latitude DECIMAL(10, 8),
-    longitude DECIMAL(11, 8),
     zip_code VARCHAR(6),
     state VARCHAR(50),
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     UNIQUE(city, area_name),
     INDEX idx_city (city),
-    INDEX idx_area_name (area_name),
-    INDEX idx_zip_code (zip_code)
+    INDEX idx_area_name (area_name)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
--- Table 6: PRIORITY_LEVELS
+-- Table 5: PRIORITY_LEVELS
 CREATE TABLE priority_levels (
     id INT PRIMARY KEY AUTO_INCREMENT,
     priority_name VARCHAR(50) NOT NULL UNIQUE,
-    sla_hours INT,
-    response_time_hours INT,
-    resolution_time_days INT,
     color_code VARCHAR(20),
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     INDEX idx_priority_name (priority_name)
@@ -117,45 +95,26 @@ CREATE TABLE citizens (
     email VARCHAR(255) NOT NULL UNIQUE,
     phone_number VARCHAR(20) NOT NULL UNIQUE,
     password VARCHAR(255) NOT NULL,
-    address VARCHAR(500),
-    location_id INT,
-    state VARCHAR(100),
-    pincode VARCHAR(6),
-    aadhar_number VARCHAR(12),
-    date_of_birth DATE,
-    gender VARCHAR(20) DEFAULT 'Male',
-    profile_image_url VARCHAR(500),
-    CONSTRAINT chk_gender CHECK (gender IN ('Male', 'Female', 'Other')),
-    is_active BOOLEAN DEFAULT TRUE,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-    CONSTRAINT fk_citizen_location FOREIGN KEY (location_id) REFERENCES locations(id) ON DELETE SET NULL,
     INDEX idx_email (email),
-    INDEX idx_phone_number (phone_number),
-    INDEX idx_location_id (location_id),
-    INDEX idx_is_active (is_active)
+    INDEX idx_phone_number (phone_number)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- Table 8: ADMINS
-CREATE TABLE admins (
+CREATE TABLE admins(
     id INT PRIMARY KEY AUTO_INCREMENT,
     full_name VARCHAR(255) NOT NULL,
     email VARCHAR(255) NOT NULL UNIQUE,
     phone_number VARCHAR(20) NOT NULL UNIQUE,
     password VARCHAR(255) NOT NULL,
     department_id INT,
-    designation_id INT,
     employee_id VARCHAR(50) UNIQUE,
-    date_of_joining DATE,
     is_active BOOLEAN DEFAULT TRUE,
-    aadhar_number VARCHAR(12),
-    profile_image_url VARCHAR(500),
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     CONSTRAINT fk_admin_dept FOREIGN KEY (department_id) REFERENCES departments(id) ON DELETE SET NULL,
-    CONSTRAINT fk_admin_desig FOREIGN KEY (designation_id) REFERENCES designations(id) ON DELETE SET NULL,
     INDEX idx_department_id (department_id),
-    INDEX idx_designation_id (designation_id),
     INDEX idx_is_active (is_active),
     INDEX idx_employee_id (employee_id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
@@ -164,173 +123,60 @@ CREATE TABLE admins (
 ALTER TABLE departments ADD CONSTRAINT fk_dept_head_admin FOREIGN KEY (head_admin_id) REFERENCES admins(id) ON DELETE SET NULL;
 
 -- ================================================================================
--- MAIN TRANSACTION TABLE
+-- TABLE 9: ISSUES (Transaction Table - Core)
 -- ================================================================================
-
--- Table 9: ISSUES (Central Hub)
+-- Citizens report issues here
+-- Each issue can be tracked and updated by admins
 CREATE TABLE issues (
     id INT PRIMARY KEY AUTO_INCREMENT,
     citizen_id INT NOT NULL,
     issue_type_id INT NOT NULL,
-    issue_category_id INT,
     location_id INT,
-    priority_level_id INT DEFAULT 3,
     title VARCHAR(255) NOT NULL,
     description TEXT NOT NULL,
-    latitude DECIMAL(10, 8),
-    longitude DECIMAL(11, 8),
-    address VARCHAR(500),
     status VARCHAR(20) DEFAULT 'Reported',
     assigned_admin INT,
-    CONSTRAINT chk_issue_status CHECK (status IN ('Reported','Pending','In Progress','Resolved','Rejected','Closed')),
-    estimated_resolution_date DATE,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     resolved_date TIMESTAMP NULL,
     
+    CONSTRAINT chk_issue_status CHECK (status IN ('Reported','Pending','In Progress','Resolved','Rejected','Closed')),
     CONSTRAINT fk_issue_citizen FOREIGN KEY (citizen_id) REFERENCES citizens(id) ON DELETE CASCADE,
     CONSTRAINT fk_issue_type FOREIGN KEY (issue_type_id) REFERENCES issue_types(id) ON DELETE RESTRICT,
-    CONSTRAINT fk_issue_category FOREIGN KEY (issue_category_id) REFERENCES issue_categories(id) ON DELETE SET NULL,
     CONSTRAINT fk_issue_location FOREIGN KEY (location_id) REFERENCES locations(id) ON DELETE SET NULL,
-    CONSTRAINT fk_issue_priority FOREIGN KEY (priority_level_id) REFERENCES priority_levels(id) ON DELETE SET DEFAULT,
     CONSTRAINT fk_issue_admin FOREIGN KEY (assigned_admin) REFERENCES admins(id) ON DELETE SET NULL,
     
     INDEX idx_status (status),
     INDEX idx_citizen_id (citizen_id),
     INDEX idx_assigned_admin (assigned_admin),
     INDEX idx_created_at (created_at),
-    INDEX idx_priority_level_id (priority_level_id),
     INDEX idx_location_id (location_id),
     INDEX idx_issue_type_id (issue_type_id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- ================================================================================
--- DETAIL & HISTORY TABLES
+-- TABLE 10: ISSUE_STATUS_HISTORY (Audit Trail Table)
 -- ================================================================================
-
--- Table 10: MULTIMEDIA
-CREATE TABLE multimedia (
-    id INT PRIMARY KEY AUTO_INCREMENT,
-    issue_id INT NOT NULL,
-    file_type VARCHAR(20) NOT NULL,
-    url VARCHAR(500) NOT NULL,
-    CONSTRAINT chk_file_type CHECK (file_type IN ('image', 'video', 'document', 'audio')),
-    filename VARCHAR(255),
-    file_size INT,
-    mime_type VARCHAR(100),
-    uploaded_by_citizen BOOLEAN DEFAULT TRUE,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-    CONSTRAINT fk_media_issue FOREIGN KEY (issue_id) REFERENCES issues(id) ON DELETE CASCADE,
-    INDEX idx_issue_id (issue_id),
-    INDEX idx_file_type (file_type)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
-
--- Table 11: ISSUE_COMMENTS
-CREATE TABLE issue_comments (
-    id INT PRIMARY KEY AUTO_INCREMENT,
-    issue_id INT NOT NULL,
-    user_id INT,
-    admin_id INT,
-    comment_text TEXT NOT NULL,
-    is_internal BOOLEAN DEFAULT FALSE,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-    CONSTRAINT fk_comment_issue FOREIGN KEY (issue_id) REFERENCES issues(id) ON DELETE CASCADE,
-    CONSTRAINT fk_comment_citizen FOREIGN KEY (user_id) REFERENCES citizens(id) ON DELETE SET NULL,
-    CONSTRAINT fk_comment_admin FOREIGN KEY (admin_id) REFERENCES admins(id) ON DELETE SET NULL,
-    INDEX idx_issue_id (issue_id),
-    INDEX idx_created_at (created_at),
-    INDEX idx_is_internal (is_internal)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
-
--- Table 12: ISSUE_STATUS_HISTORY
+-- Tracks every status change of an issue
+-- Provides complete audit trail for compliance and analysis
 CREATE TABLE issue_status_history (
     id INT PRIMARY KEY AUTO_INCREMENT,
     issue_id INT NOT NULL,
     old_status VARCHAR(20),
     new_status VARCHAR(20) NOT NULL,
-    changed_by_admin INT,
+    changed_by_admin_id INT,
+    remarks TEXT,
+    changed_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    
     CONSTRAINT chk_old_status CHECK (old_status IS NULL OR old_status IN ('Reported','Pending','In Progress','Resolved','Rejected','Closed')),
     CONSTRAINT chk_new_status CHECK (new_status IN ('Reported','Pending','In Progress','Resolved','Rejected','Closed')),
-    changed_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    remarks TEXT,
-    internal_notes TEXT,
-    CONSTRAINT fk_status_issue FOREIGN KEY (issue_id) REFERENCES issues(id) ON DELETE CASCADE,
-    CONSTRAINT fk_status_admin FOREIGN KEY (changed_by_admin) REFERENCES admins(id) ON DELETE SET NULL,
+    CONSTRAINT fk_history_issue FOREIGN KEY (issue_id) REFERENCES issues(id) ON DELETE CASCADE,
+    CONSTRAINT fk_history_admin FOREIGN KEY (changed_by_admin_id) REFERENCES admins(id) ON DELETE SET NULL,
+    
     INDEX idx_issue_id (issue_id),
     INDEX idx_changed_at (changed_at),
-    INDEX idx_new_status (new_status)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
-
--- Table 13: ISSUE_ASSIGNMENTS_HISTORY
-CREATE TABLE issue_assignments_history (
-    id INT PRIMARY KEY AUTO_INCREMENT,
-    issue_id INT NOT NULL,
-    old_admin_id INT,
-    new_admin_id INT NOT NULL,
-    assigned_by_admin_id INT,
-    assignment_reason TEXT,
-    assigned_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    reassignment_date DATE,
-    CONSTRAINT fk_assign_issue FOREIGN KEY (issue_id) REFERENCES issues(id) ON DELETE CASCADE,
-    CONSTRAINT fk_assign_old_admin FOREIGN KEY (old_admin_id) REFERENCES admins(id) ON DELETE SET NULL,
-    CONSTRAINT fk_assign_new_admin FOREIGN KEY (new_admin_id) REFERENCES admins(id) ON DELETE RESTRICT,
-    CONSTRAINT fk_assigned_by FOREIGN KEY (assigned_by_admin_id) REFERENCES admins(id) ON DELETE SET NULL,
-    INDEX idx_issue_id (issue_id),
-    INDEX idx_new_admin_id (new_admin_id),
-    INDEX idx_assigned_at (assigned_at)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
-
--- ================================================================================
--- FEEDBACK & NOTIFICATION TABLES
--- ================================================================================
-
--- Table 14: ISSUE_REVIEWS
-CREATE TABLE issue_reviews (
-    id INT PRIMARY KEY AUTO_INCREMENT,
-    issue_id INT NOT NULL,
-    citizen_id INT NOT NULL,
-    admin_id INT,
-    rating INT CHECK (rating BETWEEN 1 AND 5),
-    review_text TEXT,
-    cleanliness_rating INT CHECK (cleanliness_rating BETWEEN 1 AND 5),
-    time_taken_rating INT CHECK (time_taken_rating BETWEEN 1 AND 5),
-    quality_of_work INT CHECK (quality_of_work BETWEEN 1 AND 5),
-    would_recommend BOOLEAN DEFAULT TRUE,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    CONSTRAINT fk_review_issue FOREIGN KEY (issue_id) REFERENCES issues(id) ON DELETE CASCADE,
-    CONSTRAINT fk_review_citizen FOREIGN KEY (citizen_id) REFERENCES citizens(id) ON DELETE CASCADE,
-    CONSTRAINT fk_review_admin FOREIGN KEY (admin_id) REFERENCES admins(id) ON DELETE SET NULL,
-    UNIQUE(issue_id, citizen_id),
-    INDEX idx_issue_id (issue_id),
-    INDEX idx_citizen_id (citizen_id),
-    INDEX idx_rating (rating)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
-
--- Table 15: NOTIFICATIONS
-CREATE TABLE notifications (
-    id INT PRIMARY KEY AUTO_INCREMENT,
-    recipient_citizen_id INT,
-    recipient_admin_id INT,
-    issue_id INT,
-    notification_type VARCHAR(50) NOT NULL,
-    title VARCHAR(255),
-    CONSTRAINT chk_notification_type CHECK (notification_type IN ('Status Update', 'Assignment', 'Review Request', 'Resolved', 'Assigned', 'Comment Added')),
-    message TEXT NOT NULL,
-    is_read BOOLEAN DEFAULT FALSE,
-    read_at TIMESTAMP NULL,
-    sent_via VARCHAR(20) NOT NULL,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    CONSTRAINT chk_sent_via CHECK (sent_via IN ('Email', 'SMS', 'In-App')),
-    CONSTRAINT fk_notif_citizen FOREIGN KEY (recipient_citizen_id) REFERENCES citizens(id) ON DELETE CASCADE,
-    CONSTRAINT fk_notif_admin FOREIGN KEY (recipient_admin_id) REFERENCES admins(id) ON DELETE CASCADE,
-    CONSTRAINT fk_notif_issue FOREIGN KEY (issue_id) REFERENCES issues(id) ON DELETE CASCADE,
-    INDEX idx_recipient_citizen (recipient_citizen_id),
-    INDEX idx_recipient_admin (recipient_admin_id),
-    INDEX idx_is_read (is_read),
-    INDEX idx_created_at (created_at),
-    INDEX idx_issue_id (issue_id)
+    INDEX idx_new_status (new_status),
+    INDEX idx_changed_by_admin_id (changed_by_admin_id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- ================================================================================
@@ -400,19 +246,17 @@ SELECT
     i.title,
     c.full_name AS reported_by,
     it.type_name AS issue_type,
-    pl.priority_name AS priority,
+    d.department_name,
     i.status,
-    i.assigned_admin,
     COALESCE(a.full_name, 'Unassigned') AS assigned_to,
-    DATEDIFF(i.estimated_resolution_date, CURDATE()) AS days_until_deadline,
     i.created_at
 FROM issues i
 LEFT JOIN citizens c ON i.citizen_id = c.id
 LEFT JOIN issue_types it ON i.issue_type_id = it.id
-LEFT JOIN priority_levels pl ON i.priority_level_id = pl.id
+LEFT JOIN departments d ON it.department_id = d.id
 LEFT JOIN admins a ON i.assigned_admin = a.id
 WHERE i.status NOT IN ('Resolved', 'Rejected', 'Closed')
-ORDER BY pl.priority_name DESC, i.created_at ASC;
+ORDER BY i.created_at ASC;
 
 -- View 2: Resolved Issues Report
 CREATE VIEW v_resolved_issues_report AS
@@ -676,19 +520,19 @@ INSERT INTO designations (designation_name, description, salary_range_min, salar
 ('Coordinator', 'Issue coordination and tracking', 25000, 35000);
 
 -- Insert Departments
-INSERT INTO departments (department_name, description, budget) VALUES
-('Public Works', 'Roads, highways, and infrastructure', 5000000),
-('Sanitation', 'Garbage collection and waste management', 3000000),
-('Water Supply', 'Water pipelines and distribution', 4000000),
-('Public Safety', 'Street lights, safety measures', 2000000),
-('Health & Hygiene', 'Public health and cleanliness', 1500000);
+INSERT INTO departments (department_name, budget) VALUES
+('Roads & Infrastructure', 5000000),
+('Water Supply', 4000000),
+('Sanitation', 3000000),
+('Public Lighting', 2000000),
+('Others', 1000000);
 
 -- Insert Priority Levels
-INSERT INTO priority_levels (priority_name, sla_hours, response_time_hours, resolution_time_days, color_code) VALUES
-('Critical', 4, 1, 1, '#FF0000'),
-('High', 24, 4, 3, '#FF8800'),
-('Medium', 72, 8, 7, '#FFFF00'),
-('Low', 168, 24, 14, '#00FF00');
+INSERT INTO priority_levels (priority_name, color_code) VALUES
+('Critical', '#FF0000'),
+('High', '#FF8800'),
+('Medium', '#FFFF00'),
+('Low', '#00FF00');
 
 -- Insert Locations
 INSERT INTO locations (city, area_name, locality, zip_code, state) VALUES
@@ -698,24 +542,15 @@ INSERT INTO locations (city, area_name, locality, zip_code, state) VALUES
 ('Bangalore', '100 Feet Road', 'East Bangalore', '560100', 'Karnataka'),
 ('Bangalore', 'Marathahalli', 'Tech Zone', '560037', 'Karnataka');
 
--- Insert Issue Types
-INSERT INTO issue_types (type_name, description, department_id, severity_level, avg_resolution_days) VALUES
-('Pothole', 'Road surface damage', 1, 'High', 3),
-('Water Leakage', 'Water supply pipeline issues', 3, 'High', 2),
-('Garbage Accumulation', 'Waste management issues', 2, 'Medium', 1),
-('Street Light Malfunction', 'Non-functional street lights', 4, 'Medium', 2),
-('Drainage Blockage', 'Clogged drainage systems', 1, 'High', 2);
+-- Insert Issue Types (linked to departments)
+INSERT INTO issue_types (type_name, description, department_id) VALUES
+('Pothole', 'Road surface damage', 1),
+('Water Leakage', 'Water supply pipeline issues', 2),
+('Garbage Accumulation', 'Waste management issues', 3),
+('Street Light Malfunction', 'Non-functional street lights', 4),
+('Drainage Blockage', 'Clogged drainage systems', 2);
 
--- Insert Issue Categories
-INSERT INTO issue_categories (issue_type_id, category_name, description) VALUES
-(1, 'Small Pothole (1-2 ft)', 'Small surface damage'),
-(1, 'Large Pothole (3+ ft)', 'Major road damage'),
-(2, 'Pipe Burst', 'Major water leakage'),
-(2, 'Joint Leak', 'Minor water seepage'),
-(3, 'Overflowing Bins', 'Full waste containers'),
-(3, 'Scattered Garbage', 'Waste on streets'),
-(4, 'Bulb Failure', 'Single light out'),
-(4, 'Complete Panel Down', 'Multiple lights down');
+
 
 -- ================================================================================
 -- INSERT SAMPLE DATA

@@ -61,11 +61,12 @@ const getIssuesByCitizen = (req, res) => __awaiter(void 0, void 0, void 0, funct
             res.status(401).json({ message: "Unauthorized" });
             return;
         }
-        // SQL: Get all issues reported by this citizen
+        // SQL: Get all issues reported by this citizen with issue type details
         const issues = (yield (0, db_1.queryAll)(`SELECT 
-        i.id, i.title, i.description, i.issue_type, 
-        i.latitude, i.longitude, i.address, i.status, i.created_at
+        i.id, i.title, i.description, i.issue_type_id, 
+        it.type_name, i.address, i.status, i.created_at
       FROM issues i
+      LEFT JOIN issue_types it ON i.issue_type_id = it.id
       WHERE i.citizen_id = ?
       ORDER BY i.created_at DESC`, [citizenId]));
         res.json({ issues });
@@ -86,8 +87,6 @@ const deleteIssue = (req, res) => __awaiter(void 0, void 0, void 0, function* ()
             res.status(404).json({ message: "Issue not found or unauthorized" });
             return;
         }
-        // SQL: Delete multimedia first (foreign key constraint)
-        yield (0, db_1.query)("DELETE FROM multimedia WHERE issue_id = ?", [issueId]);
         // SQL: Delete issue status history
         yield (0, db_1.query)("DELETE FROM issue_status_history WHERE issue_id = ?", [
             issueId,

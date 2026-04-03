@@ -10,12 +10,25 @@ const admin_routes_1 = __importDefault(require("./routes/admin.routes"));
 const citizen_routes_1 = __importDefault(require("./routes/citizen.routes"));
 const issue_routes_1 = __importDefault(require("./routes/issue.routes"));
 const app = (0, express_1.default)();
-// CORS middleware - must be before routes
-app.use((0, cors_1.default)({
-    origin: "*",
-    methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+// CORS middleware - allows any localhost port in development
+const corsOptions = {
+    origin: (origin, callback) => {
+        // Allow requests with no origin (mobile apps, curl requests)
+        if (!origin)
+            return callback(null, true);
+        // Allow localhost on any port (development)
+        if (origin.includes("localhost") || origin.includes("127.0.0.1")) {
+            return callback(null, true);
+        }
+        // In production, add your domain here
+        callback(new Error("CORS not allowed"));
+    },
+    credentials: true,
+    methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"],
     allowedHeaders: ["Content-Type", "Authorization"],
-}));
+    optionsSuccessStatus: 200,
+};
+app.use((0, cors_1.default)(corsOptions));
 app.use(express_1.default.json());
 app.use(express_1.default.urlencoded({ extended: true }));
 app.use(express_1.default.static("public"));

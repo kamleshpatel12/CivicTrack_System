@@ -1,7 +1,6 @@
 import { Link } from "react-router-dom";
 import { Button } from "./ui/button.tsx";
 import { LogIn, LogOut, Shield, LayoutDashboard } from "lucide-react";
-import civicIssueLogo from "../assets/civic_logo.png";
 import { useAuth } from "../contexts/AuthContext.tsx";
 
 type HeaderProps = {
@@ -31,11 +30,8 @@ const Header: React.FC<HeaderProps> = () => {
       <div className="container mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex h-16 items-center justify-between">
           <Link to="/" className="flex items-center space-x-2">
-            <div className="flex items-center justify-center w-16 h-16 rounded-full bg-white shadow">
-              <img src={civicIssueLogo} alt="civicIssueLogo" className="w-14 h-14 object-contain" />
-            </div>
             <div>
-              <h1 className="text-xl font-bold text-foreground">
+              <h1 className="text-4xl font-bold text-foreground">
                 CivicTrack
               </h1>
             </div>

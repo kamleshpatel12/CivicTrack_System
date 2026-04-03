@@ -6,33 +6,42 @@ export const createIssue = async (
   res: Response
 ): Promise<void> => {
   try {
-    const files = (req.files as Express.Multer.File[]) || [];
-    const { title, description, location, issueType } = req.body;
+    const { title, description, issueType, address } = req.body;
     const citizenId = (req as any).citizenId;
 
-    // Parse location
-    let parsedLocation = location;
-    if (typeof location === "string") {
-      try {
-        parsedLocation = JSON.parse(location);
-      } catch {
-        res.status(400).json({ message: "Invalid location JSON format" });
-        return;
-      }
-    }
+    console.log("=".repeat(60));
+    console.log("📋 NEW ISSUE REPORTED");
+    console.log("=".repeat(60));
+    console.log(`👤 Citizen ID: ${citizenId}`);
+    console.log(`📌 Issue Type: ${issueType}`);
+    console.log(`📍 Location: ${address}`);
 
     // Validate required fields
-    if (
-      !title ||
-      !description ||
-      !parsedLocation ||
-      !parsedLocation.latitude ||
-      !parsedLocation.longitude ||
-      !issueType
-    ) {
-      res.status(400).json({ message: "Please fill all the required fields " });
+    if (!title || !description || !issueType || !address) {
+      res.status(400).json({ message: "Please fill all required fields" });
       return;
     }
+
+    // SQL: Lookup issue_type_id and department from issue_types table
+    const issueTypeRecord = await queryOne(
+      `SELECT it.id, it.type_name, it.department_id, d.department_name 
+       FROM issue_types it
+       LEFT JOIN departments d ON it.department_id = d.id
+       WHERE it.type_name = ?`,
+      [issueType]
+    );
+
+    if (!issueTypeRecord) {
+      console.log(`❌ Issue type '${issueType}' not found in database`);
+      res.status(400).json({ message: `Issue type '${issueType}' not found` });
+      return;
+    }
+
+    const issueTypeId = (issueTypeRecord as any).id;
+    const departmentName = (issueTypeRecord as any).department_name || "Unknown";
+    const departmentId = (issueTypeRecord as any).department_id;
+
+    console.log(`🏢 Department: ${departmentName} (ID: ${departmentId})`);
 
     // SQL: Check if issue with same title exists
     const existingIssue = await queryOne(
@@ -41,6 +50,7 @@ export const createIssue = async (
     );
 
     if (existingIssue) {
+      console.log(`⚠️  Issue with title '${title}' already exists`);
       res
         .status(400)
         .json({ message: "Issue with this title already exists" });
@@ -50,121 +60,107 @@ export const createIssue = async (
     // SQL: Insert issue
     const issueId = await insert(
       `INSERT INTO issues 
-       (citizen_id, issue_type, title, description, latitude, longitude, address, status) 
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+       (citizen_id, issue_type_id, title, description, address, status) 
+       VALUES (?, ?, ?, ?, ?, ?)`,
       [
         citizenId,
-        issueType,
+        issueTypeId,
         title,
         description,
-        parsedLocation.latitude,
-        parsedLocation.longitude,
-        parsedLocation.address,
+        address,
         "Reported",
       ]
     );
 
-    // SQL: Insert multimedia files
-    const mediaDocs = await Promise.all(
-      files.map((file) =>
-        (async () => {
-          const mediaId = await insert(
-            `INSERT INTO multimedia (issue_id, file_type, url, filename) 
-             VALUES (?, ?, ?, ?)`,
-            [
-              issueId,
-              file.mimetype.startsWith("video") ? "video" : "image",
-              file.path,
-              file.originalname,
-            ]
-          );
-          return {
-            id: mediaId,
-            issueId,
-            fileType: file.mimetype.startsWith("video") ? "video" : "image",
-            url: file.path,
-            filename: file.originalname,
-          };
-        })()
-      )
-    );
+    console.log(`✅ Issue Created Successfully`);
+    console.log(`📌 Issue ID: ${issueId}`);
+    console.log(`👨‍💼 Assigned to Department: ${departmentName} (ID: ${departmentId})`);
+    console.log("=".repeat(60));
 
     res.status(200).json({
-      message: "Issue created",
+      message: "Issue created successfully",
       issue: {
         id: issueId,
         citizenId,
         issueType,
         title,
         description,
-        location: parsedLocation,
+        address,
         status: "Reported",
+        departmentId,
+        departmentName,
       },
-      media: mediaDocs,
     });
   } catch (error) {
-    console.error("Error creating issue:", error);
+    console.error("❌ Error creating issue:", error);
     res.status(500).json({ message: "Internal server error" });
   }
 };
 
 export const getIssues = async (req: Request, res: Response) => {
   try {
-    // SQL: JOINed query to get issues with citizen names (ONE query instead of N+1)
+    const loggedInAdminId = (req as any).adminId;
+
+    console.log("\n" + "=".repeat(60));
+    console.log("👨‍💼 ADMIN FETCHING ISSUES");
+    console.log("=".repeat(60));
+    console.log(`Admin ID: ${loggedInAdminId}`);
+
+    // SQL: Get admin's department
+    const admin = await queryOne(
+      `SELECT a.department_id, d.department_name 
+       FROM admins a
+       LEFT JOIN departments d ON a.department_id = d.id
+       WHERE a.id = ?`,
+      [loggedInAdminId]
+    );
+
+    if (!admin) {
+      res.status(404).json({ message: "Admin not found" });
+      return;
+    }
+
+    const adminDepartmentId = (admin as any).department_id;
+    const departmentName = (admin as any).department_name || "Unknown";
+
+    console.log(`🏢 Department: ${departmentName} (ID: ${adminDepartmentId})`);
+
+    // SQL: Get issues only for this admin's department
     const issues = (await queryAll(
       `SELECT 
         i.id,
         i.citizen_id,
-        i.issue_type,
+        i.issue_type_id,
         i.title,
         i.description,
-        i.latitude,
-        i.longitude,
         i.address,
         i.status,
         i.created_at,
         i.updated_at,
-        c.full_name
+        c.full_name,
+        it.type_name,
+        d.department_name
       FROM issues i
       LEFT JOIN citizens c ON i.citizen_id = c.id
-      ORDER BY i.created_at DESC`
+      LEFT JOIN issue_types it ON i.issue_type_id = it.id
+      LEFT JOIN departments d ON it.department_id = d.id
+      WHERE d.id = ?
+      ORDER BY i.created_at DESC`,
+      [adminDepartmentId]
     )) as any[];
 
-    // SQL: Get multimedia for all issues in one query
-    const allMedia = (await queryAll(
-      `SELECT id, issue_id, file_type, url, filename FROM multimedia`
-    )) as any[];
+    console.log(`📊 Found ${issues.length} issue(s) for this department`);
+    if (issues.length > 0) {
+      issues.forEach((issue, index) => {
+        console.log(`   ${index + 1}. [${issue.type_name}] ${issue.title} - Status: ${issue.status}`);
+      });
+    }
+    console.log("=".repeat(60) + "\n");
 
-    // Map multimedia by issue_id
-    const mediaByIssueId = new Map();
-    allMedia.forEach((media) => {
-      if (!mediaByIssueId.has(media.issue_id)) {
-        mediaByIssueId.set(media.issue_id, []);
-      }
-      mediaByIssueId.get(media.issue_id).push(media);
+    res.json({
+      issues,
+      departmentId: adminDepartmentId,
     });
-
-    // Transform response
-    const issuesWithMedia = issues.map((issue) => {
-      const media = mediaByIssueId.get(issue.id) || [];
-      return {
-        _id: issue.id,
-        title: issue.title,
-        description: issue.description,
-        type: issue.issue_type,
-        location: {
-          latitude: issue.latitude,
-          longitude: issue.longitude,
-          address: issue.address,
-        },
-        reportedBy: issue.full_name || "Anonymous",
-        reportedAt: issue.created_at,
-        image: media.length > 0 ? media[0].url : null,
-        status: issue.status,
-      };
-    });
-
-    res.json({ issues: issuesWithMedia });
   } catch (error) {
     console.error("Error fetching issues:", error);
     res.status(500).json({ message: "Internal server error" });
@@ -201,15 +197,8 @@ export const getIssueById = async (req: Request, res: Response) => {
       return;
     }
 
-    // SQL: Get multimedia for this issue
-    const media = await queryAll(
-      `SELECT id, file_type, url, filename FROM multimedia WHERE issue_id = ?`,
-      [id]
-    );
-
     res.json({
       issue,
-      media,
     });
   } catch (error) {
     console.error("Error fetching issue:", error);

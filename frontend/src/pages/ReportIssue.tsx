@@ -10,7 +10,7 @@ import {
   CardTitle,
 } from "../components/ui/card";
 import { RadioGroup, RadioGroupItem } from "../components/ui/radio-group";
-import { ArrowLeft, Upload, Send } from "lucide-react";
+import { ArrowLeft, Send } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import { VITE_BACKEND_URL } from "../config/config";
@@ -22,23 +22,17 @@ const ReportIssue = () => {
     issueDescription: "",
     issueCity: "",
     issueArea: "",
-    issueType: "Road Infrastructure",
+    issueType: "Pothole",
     location: {
       address: "",
       latitude: null as number | null,
       longitude: null as number | null,
     },
   });
-  const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [loading, setLoading] = useState(false);
 
   const handleInputChange = (field: string, value: string) => {
     setFormData((prev) => ({ ...prev, [field]: value }));
-  };
-
-  const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    if (file) setSelectedFile(file);
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -62,25 +56,22 @@ const ReportIssue = () => {
         return;
       }
 
-      const data = new FormData();
-      data.append("title", formData.title);
-      data.append("description", formData.issueDescription);
-      data.append("issueType", formData.issueType);
       const address = `${formData.issueArea}, ${formData.issueCity}`;
-      data.append("address", address);
-
-      if (selectedFile) {
-        data.append("files", selectedFile);
-      }
 
       const response = await fetch(
         `${VITE_BACKEND_URL}/api/v1/citizen/create-issue`,
         {
           method: "POST",
           headers: {
+            "Content-Type": "application/json",
             Authorization: `Bearer ${token}`,
           },
-          body: data,
+          body: JSON.stringify({
+            title: formData.title,
+            description: formData.issueDescription,
+            issueType: formData.issueType,
+            address: address,
+          }),
         }
       );
 
@@ -100,15 +91,14 @@ const ReportIssue = () => {
   };
 
   const issueTypes = [
-    { value: "Road Infrastructure", label: "Road Infrastructure" },
-    { value: "Waste Management", label: "Waste Management" },
-    { value: "Environmental Issues", label: "Environmental Issues" },
+    { value: "Pothole", label: "Pothole" },
+    { value: "Water Leakage", label: "Water Leakage" },
+    { value: "Garbage Accumulation", label: "Garbage Accumulation" },
     {
-      value: "Utilities & Infrastructure",
-      label: "Utilities & Infrastructure",
+      value: "Street Light Malfunction",
+      label: "Street Light Malfunction",
     },
-    { value: "Public Safety", label: "Public Safety" },
-    { value: "Other", label: "Other" },
+    { value: "Drainage Blockage", label: "Drainage Blockage" },
   ];
 
   return (
@@ -241,32 +231,6 @@ const ReportIssue = () => {
                       className="min-h-24 shadow-sm"
                       required
                     />
-                  </div>
-                </div>
-
-                {/* File Upload */}
-
-                <div className="space-y-4">
-                  <h3 className="text-lg font-medium">Upload Media</h3>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="file">Upload Image/Video</Label>
-                    <div className="flex items-center space-x-4">
-                      <Input
-                        id="file"
-                        type="file"
-                        accept="image/*,video/*"
-                        onChange={handleFileChange}
-                        className="flex-1"
-                      />
-                      <Upload className="h-5 w-5 text-blue-600" />
-                    </div>
-                    {selectedFile && (
-                      <p className="text-sm text-muted-foreground">
-                        Selected: {selectedFile.name} (
-                        {(selectedFile.size / 1024 / 1024).toFixed(2)} MB)
-                      </p>
-                    )}
                   </div>
                 </div>
 

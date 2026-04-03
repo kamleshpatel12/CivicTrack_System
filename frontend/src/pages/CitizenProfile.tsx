@@ -27,17 +27,12 @@ import { toast } from "sonner";
 import { VITE_BACKEND_URL } from "../config/config";
 
 interface Issues {
-  _id: string;
+  id: string;
   title: string;
   description: string;
-  issueType: string;
-  location: {
-    latitude: number;
-    longitude: number;
-    address: string;
-  };
-  createdAt: string;
-  file?: string;
+  type_name: string;
+  address: string;
+  created_at: string;
   status: string;
 }
 
@@ -360,7 +355,7 @@ const CitizenProfile = () => {
               <div className="space-y-4">
                 {myIssues.map((issue) => (
                   <div
-                    key={issue._id}
+                    key={issue.id}
                     className="border rounded-lg p-4 space-y-3 shadow-sm bg-yellow-50"
                   >
                     <div className="flex items-start justify-between">
@@ -375,31 +370,23 @@ const CitizenProfile = () => {
                       </Badge>
                     </div>
 
-                    {issue.file && (
-                      <img
-                        src={issue.file}
-                        alt="Issue"
-                        className="w-full h-40 object-cover rounded-md"
-                      />
-                    )}
-
                     <Separator />
 
                     <div className="grid grid-cols-1  gap-4 text-sm">
                       <div className="flex items-center space-x-2">
                         <MapPin className="h-4 w-4 text-blue-600" />
-                        <span>{issue.location.address}</span>
+                        <span>{issue.address}</span>
                       </div>
                       <div className="flex items-center space-x-2">
                         <Calendar className="h-4 w-4 text-pink-500" />
                         <span>
                           Reported:{" "}
-                          {new Date(issue.createdAt).toLocaleDateString()}
+                          {new Date(issue.created_at).toLocaleDateString()}
                         </span>
                       </div>
                       <div className="flex items-center space-x-2">
                         <FileText className="h-4 w-4 text-purple-600" />
-                        <span>Type: {issue.issueType}</span>
+                        <span>Type: {issue.type_name}</span>
                       </div>
                     </div>
                   </div>

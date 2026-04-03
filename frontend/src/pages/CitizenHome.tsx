@@ -1,41 +1,32 @@
 import { useEffect, useState } from "react";
 import { Button } from "../components/ui/button";
-import { Input } from "../components/ui/input";
 import {
   Card,
   CardContent,
   CardHeader,
   CardTitle,
 } from "../components/ui/card";
-import { Search, Plus, MapPin, Clock, User } from "lucide-react";
+import { Plus, MapPin, Clock, User } from "lucide-react";
 import { Link } from "react-router-dom";
 import { VITE_BACKEND_URL } from "../config/config";
-import Player from "lottie-react";
-import emptyAnimation from "../assets/animations/empty.json";
 import HeaderAfterAuth from "../components/HeaderAfterAuth";
 import { motion } from "framer-motion";
 import { useLoader } from "../contexts/LoaderContext";
 
 interface Issues {
-  _id: string;
+  id: string;
   title: string;
   description: string;
-  type: string;
-  location: {
-    latitude: number;
-    longitude: number;
-    address: string;
-  };
-  reportedBy: string;
-  reportedAt: string;
-  image: string;
+  type_name: string;
+  address: string;
+  full_name: string;
+  created_at: string;
   status: string;
 }
 
 const MIN_LOADER_DURATION = 2500; // Minimum loader display time (ms)
 
 const CitizenHome = () => {
-  const [searchCity, setSearchCity] = useState("");
   const [reportedIssues, setReportedIssues] = useState<Issues[]>([]);
   const [loading, setLoading] = useState(true);
   const { hideLoader } = useLoader();
@@ -45,10 +36,9 @@ const CitizenHome = () => {
       const startTime = Date.now();
 
       try {
-        const response = await fetch(`${VITE_BACKEND_URL}/api/v1/all-issues?t=${Date.now()}`, {
+        const response = await fetch(`${VITE_BACKEND_URL}/api/v1/citizen/issues`, {
           headers: {
             Authorization: `Bearer ${localStorage.getItem("auth_token")}`,
-            "Cache-Control": "no-cache",
           },
         });
 
@@ -73,12 +63,6 @@ const CitizenHome = () => {
 
     fetchIssues();
   }, [hideLoader]);
-
-  const filteredIssues = searchCity
-    ? reportedIssues.filter((issue) =>
-        issue.location?.address.toLowerCase().includes(searchCity.toLowerCase())
-      )
-    : reportedIssues;
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -113,23 +97,8 @@ const CitizenHome = () => {
       <div className="min-h-screen bg-[#f3f6f8]">
         <HeaderAfterAuth />
         <main className="container mx-auto px-4 sm:px-6 lg:px-8 py-8 pt-20 space-y-10">
-          {/* Top Bar: Search and Report Button */}
-          <div className="flex items-center gap-4 flex-wrap lg:flex-nowrap">
-            <div className="flex-1 min-w-[250px]">
-              <div className="relative">
-                <Search
-                  className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-500 z-20"
-                  aria-hidden="true"
-                />
-                <Input
-                  type="text"
-                  placeholder="Search issues by city..."
-                  value={searchCity}
-                  onChange={(e) => setSearchCity(e.target.value)}
-                  className="pl-10 bg-white/70 backdrop-blur-md border border-gray-200 rounded-full placeholder:text-gray-400"
-                />
-              </div>
-            </div>
+          {/* Top Bar: Report Button and Profile */}
+          <div className="flex items-center gap-4">
             <Link to="/citizen/create-issue">
               <Button
                 size="lg"
@@ -163,35 +132,29 @@ const CitizenHome = () => {
           <div>
             <div className="flex items-center justify-between mb-6">
               <h2 className="text-2xl font-semibold text-sky-600">
-                Recent Issues
-                {searchCity && (
-                  <span className="text-lg font-normal text-gray-400 ml-2">
-                    in {searchCity}
-                  </span>
-                )}
+                My Reported Issues
               </h2>
               <div className="text-sm text-gray-400">
-                {filteredIssues.length} issue
-                {filteredIssues.length !== 1 ? "s" : ""} found
+                {reportedIssues.length} issue
+                {reportedIssues.length !== 1 ? "s" : ""} found
               </div>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 max-h-[600px] overflow-y-auto">
-              {filteredIssues.map((issue) => (
+              {reportedIssues.map((issue) => (
                 <Card
-                  key={issue._id}
+                  key={issue.id}
                   className={`rounded-2xl bg-white/70 backdrop-blur-md border border-gray-200 shadow-md hover:shadow-xl hover:scale-[1.02] transition-all ${
                     issue.status === "Rejected"
                       ? "opacity-30 grayscale"
                       : "opacity-100"
                   }`}
                 >
-                  <div className="relative h-48 overflow-hidden rounded-t-2xl">
-                    <img
-                      src={issue.image || "/placeholder.jpg"}
-                      alt={issue.title}
-                      className="w-full h-full object-cover hover:scale-105 transition-transform duration-300"
-                    />
+                  <div className="relative bg-gradient-to-r from-blue-100 to-purple-100 h-48 overflow-hidden rounded-t-2xl flex items-center justify-center">
+                    <div className="text-center">
+                      <p className="text-4xl mb-2">📋</p>
+                      <p className="text-sm font-semibold text-gray-600">{issue.type_name}</p>
+                    </div>
                     <div
                       className={`absolute top-3 right-3 px-3 py-1 rounded-full text-xs font-semibold ${getStatusColor(
                         issue.status
@@ -212,18 +175,15 @@ const CitizenHome = () => {
                     <div className="space-y-2 text-xs text-gray-500">
                       <div className="flex items-center space-x-2">
                         <MapPin className="h-3 w-3 text-gray-400" />
-                        <span>{issue.location.address}</span>
-                        <span className="font-medium text-teal-600">
-                          • {issue.type}
-                        </span>
+                        <span>{issue.address}</span>
                       </div>
                       <div className="flex items-center space-x-2">
                         <User className="h-3 w-3 text-gray-400" />
-                        <span>Reported by {issue.reportedBy}</span>
+                        <span>Reported by {issue.full_name}</span>
                       </div>
                       <div className="flex items-center space-x-2">
                         <Clock className="h-3 w-3 text-gray-400" />
-                        <span>{issue.reportedAt}</span>
+                        <span>{new Date(issue.created_at).toLocaleDateString()}</span>
                       </div>
                     </div>
                   </CardContent>
@@ -231,32 +191,12 @@ const CitizenHome = () => {
               ))}
             </div>
 
-            {filteredIssues.length === 0 && (
-              <motion.div
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                transition={{ duration: 0.6 }}
-                className="flex flex-col items-center justify-center text-center py-12"
-              >
-                <div className="max-w-xs mx-auto mb-4">
-                  <Player
-                    autoplay
-                    loop
-                    animationData={emptyAnimation}
-                    style={{ height: "180px", width: "180px" }}
-                  />
-                </div>
+            {reportedIssues.length === 0 && (
+              <div className="flex flex-col items-center justify-center text-center py-12">
                 <p className="text-gray-400">
-                  {searchCity ? (
-                    <>
-                      No issues found for{" "}
-                      <span className="font-semibold">{searchCity}</span>
-                    </>
-                  ) : (
-                    "No issues available at the moment."
-                  )}
+                  You haven't reported any issues yet.
                 </p>
-              </motion.div>
+              </div>
             )}
           </div>
         </main>

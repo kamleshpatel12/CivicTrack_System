@@ -40,7 +40,7 @@ const SignUp = () => {
     email: "",
     phonenumber: "",
     department: "",
-    adminAccessCode: "",
+    employeeId: "",
     password: "",
     confirmPassword: "",
     agreeToTerms: false,
@@ -147,7 +147,7 @@ const SignUp = () => {
       !adminForm.email.trim() ||
       !adminForm.phonenumber.trim() ||
       !adminForm.department.trim() ||
-      !adminForm.adminAccessCode.trim()
+      !adminForm.employeeId.trim()
     ) {
       toast.error("Please fill all required fields.");
       return;
@@ -159,8 +159,8 @@ const SignUp = () => {
       toast.error("Phone number must be exactly 10 digits.");
       return;
     }
-    if (!/^\d{4,}$/.test(adminForm.adminAccessCode)) {
-      toast.error("Admin access code must be at least 4 digits.");
+    if (adminForm.employeeId.trim().length < 3) {
+      toast.error("Employee ID must be at least 3 characters.");
       return;
     }
 
@@ -174,7 +174,7 @@ const SignUp = () => {
           password: adminForm.password,
           phonenumber: adminForm.phonenumber,
           department: adminForm.department,
-          adminAccessCode: Number(adminForm.adminAccessCode.trim()),
+          employeeId: adminForm.employeeId.trim(),
         }),
       });
 
@@ -206,16 +206,9 @@ const SignUp = () => {
 
       <div className="w-full max-w-md">
         <div className="text-center mb-8">
-          <Link to="/" className="inline-flex items-center space-x-2 mb-4">
-            <div className="flex items-center justify-center w-16 h-16 rounded-full bg-white shadow">
-              <img
-                src={civicIssueLogo}
-                alt="civicIssueLogo"
-                className="w-15 h-15 object-contain"
-              />
-            </div>
+          <Link to="/" className="inline-flex items-center space-x-2 mb-4 justify-center">
             <div>
-              <h1 className="text-3xl font-extrabold text-foreground">
+              <h1 className="text-4xl font-extrabold text-foreground">
                 CivicReport
               </h1>
             </div>
@@ -268,7 +261,6 @@ const SignUp = () => {
                           <Label htmlFor="citizen-fullName">Full Name</Label>
                           <Input
                             id="citizen-fullName"
-                            placeholder="John Doe"
                             value={citizenForm.fullName}
                             onChange={(e) =>
                               setCitizenForm({
@@ -289,7 +281,6 @@ const SignUp = () => {
                           <Input
                             id="citizen-email"
                             type="email"
-                            placeholder="citizen@example.com"
                             value={citizenForm.email}
                             onChange={(e) =>
                               setCitizenForm({
@@ -310,7 +301,6 @@ const SignUp = () => {
                           <Input
                             id="citizen-phone"
                             type="tel"
-                            placeholder="0123456789"
                             value={citizenForm.phonenumber}
                             onChange={(e) =>
                               setCitizenForm({
@@ -409,13 +399,7 @@ const SignUp = () => {
                             }
                           />
                           <Label htmlFor="citizen-terms" className="text-sm">
-                            I agree to the{" "}
-                            <Link
-                              to="/terms"
-                              className="text-primary hover:underline"
-                            >
-                              Terms and Conditions
-                            </Link>
+                            I agree to the Terms and Conditions
                           </Label>
                           {citizenErrors.agreeToTerms && (
                             <p className="text-red-600 text-sm">
@@ -453,7 +437,6 @@ const SignUp = () => {
                           <Label htmlFor="admin-fullName">Full Name</Label>
                           <Input
                             id="admin-fullName"
-                            placeholder="Narendra Modi"
                             value={adminForm.fullName}
                             onChange={(e) =>
                               setAdminForm({
@@ -495,7 +478,6 @@ const SignUp = () => {
                           <Input
                             id="admin-phone"
                             type="tel"
-                            placeholder="0123456789"
                             value={adminForm.phonenumber}
                             onChange={(e) =>
                               setAdminForm({
@@ -513,9 +495,8 @@ const SignUp = () => {
                         </div>
                         <div className="space-y-2">
                           <Label htmlFor="admin-department">Department</Label>
-                          <Input
+                          <select
                             id="admin-department"
-                            placeholder="Public Works"
                             value={adminForm.department}
                             onChange={(e) =>
                               setAdminForm({
@@ -524,7 +505,15 @@ const SignUp = () => {
                               })
                             }
                             required
-                          />
+                            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                          >
+                            <option value="">Select Department</option>
+                            <option value="Roads & Infrastructure">Roads & Infrastructure</option>
+                            <option value="Water Supply">Water Supply</option>
+                            <option value="Sanitation">Sanitation</option>
+                            <option value="Public Lighting">Public Lighting</option>
+                            <option value="Others">Others</option>
+                          </select>
                           {adminErrors.department && (
                             <p className="text-red-600 text-sm">
                               {adminErrors.department}
@@ -532,23 +521,23 @@ const SignUp = () => {
                           )}
                         </div>
                         <div className="space-y-2">
-                          <Label htmlFor="admin-code">Admin Access Code</Label>
+                          <Label htmlFor="employee-id">Employee ID</Label>
                           <Input
-                            id="admin-code"
+                            id="employee-id"
                             type="text"
-                            placeholder="Contact your supervisor for the code"
-                            value={adminForm.adminAccessCode}
+                            placeholder="Enter your Employee ID"
+                            value={adminForm.employeeId}
                             onChange={(e) =>
                               setAdminForm({
                                 ...adminForm,
-                                adminAccessCode: e.target.value,
+                                employeeId: e.target.value,
                               })
                             }
                             required
                           />
-                          {adminErrors.adminAccessCode && (
+                          {adminErrors.employeeId && (
                             <p className="text-red-600 text-sm">
-                              {adminErrors.adminAccessCode}
+                              {adminErrors.employeeId}
                             </p>
                           )}
                         </div>
@@ -640,13 +629,7 @@ const SignUp = () => {
                             }
                           />
                           <Label htmlFor="admin-terms" className="text-sm">
-                            I agree to the{" "}
-                            <Link
-                              to="/terms"
-                              className="text-primary hover:underline"
-                            >
-                              Terms and Conditions
-                            </Link>
+                            I agree to the Terms and Conditions
                           </Label>
                           {adminErrors.agreeToTerms && (
                             <p className="text-red-600 text-sm">
