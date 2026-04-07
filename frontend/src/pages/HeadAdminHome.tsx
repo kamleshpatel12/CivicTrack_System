@@ -10,14 +10,14 @@ interface Issue {
   title: string;
   description: string;
   issue_type: string;
-  city: string;
-  area_name: string;
+  location: string;
   status: string;
   priority_name?: string;
   citizen_name: string;
   department_name: string;
   assigned_to?: string;
   created_at: string;
+  image?: string;
 }
 
 const HeadAdminHome = () => {
@@ -47,6 +47,16 @@ const HeadAdminHome = () => {
     fetchAllIssues();
   }, [user, token]);
 
+  const calculateStats = (issueList: Issue[]) => {
+    return {
+      total: issueList.length,
+      reported: issueList.filter((i) => i.status === "Reported").length,
+      pending: issueList.filter((i) => i.status === "Pending").length,
+      inProgress: issueList.filter((i) => i.status === "In Progress").length,
+      resolved: issueList.filter((i) => i.status === "Resolved").length,
+    };
+  };
+
   const fetchAllIssues = async () => {
     try {
       console.log("Fetching issues with token:", token ? "Present" : "Missing");
@@ -69,23 +79,22 @@ const HeadAdminHome = () => {
 
       const data = await response.json();
       console.log("Issues data received:", data);
-      const issueList = data.issues || [];
-      setIssues(issueList);
+      let issueList = data.issues || [];
+
+      // Get images from localStorage and attach to API issues
+      const issueImages = JSON.parse(
+        localStorage.getItem("issue_images") || "{}"
+      );
+
+      const issuesWithImages = issueList.map((issue: Issue) => ({
+        ...issue,
+        image: issueImages[issue.id] || undefined,
+      }));
+
+      setIssues(issuesWithImages);
 
       // Calculate stats
-      const totalIssues = issueList.length;
-      const reportedCount = issueList.filter((i: Issue) => i.status === "Reported").length;
-      const pendingCount = issueList.filter((i: Issue) => i.status === "Pending").length;
-      const inProgressCount = issueList.filter((i: Issue) => i.status === "In Progress").length;
-      const resolvedCount = issueList.filter((i: Issue) => i.status === "Resolved").length;
-
-      setStats({
-        total: totalIssues,
-        reported: reportedCount,
-        pending: pendingCount,
-        inProgress: inProgressCount,
-        resolved: resolvedCount,
-      });
+      setStats(calculateStats(issuesWithImages));
     } catch (error) {
       console.error("Error fetching issues:", error);
     } finally {
@@ -316,7 +325,7 @@ const HeadAdminHome = () => {
                         Priority
                       </th>
                       <th className="px-4 py-3 text-left font-semibold">
-                        Assigned To
+                        Image
                       </th>
                       <th className="px-4 py-3 text-left font-semibold">
                         Action
@@ -346,7 +355,7 @@ const HeadAdminHome = () => {
                             {issue.issue_type}
                           </td>
                           <td className="px-4 py-3 text-gray-700">
-                            {issue.city}, {issue.area_name}
+                            {issue.location || "N/A"}
                           </td>
                           <td className="px-4 py-3 text-gray-700">
                             {issue.citizen_name}
@@ -375,8 +384,16 @@ const HeadAdminHome = () => {
                               </span>
                             )}
                           </td>
-                          <td className="px-4 py-3 text-gray-700">
-                            {issue.assigned_to || "-"}
+                          <td className="px-4 py-3">
+                            {issue.image ? (
+                              <img
+                                src={issue.image}
+                                alt="Issue"
+                                className="h-10 w-10 object-cover rounded border border-gray-200"
+                              />
+                            ) : (
+                              <span className="text-gray-400 text-xs">—</span>
+                            )}
                           </td>
                           <td className="px-4 py-3">
                             <button
@@ -398,7 +415,7 @@ const HeadAdminHome = () => {
           {/* Priority Assignment Modal */}
           {showPriorityModal && selectedIssue && (
             <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-              <Card className="w-full max-w-md">
+              <Card className="w-full max-w-md max-h-[90vh] overflow-y-auto">
                 <CardHeader>
                   <CardTitle>Assign Priority to Issue</CardTitle>
                   <p className="text-sm text-gray-600 mt-2">
@@ -406,6 +423,40 @@ const HeadAdminHome = () => {
                   </p>
                 </CardHeader>
                 <CardContent className="space-y-4">
+                  {/* Issue Image Preview */}
+                  {selectedIssue.image && (
+                    <div className="mb-4">
+                      <p className="text-sm font-medium text-gray-700 mb-2">
+                        Issue Image:
+                      </p>
+                      <img
+                        src={selectedIssue.image}
+                        alt={selectedIssue.title}
+                        className="w-full h-48 object-cover rounded-lg border border-gray-200"
+                      />
+                    </div>
+                  )}
+
+                  {/* Issue Details */}
+                  <div className="bg-gray-50 rounded-lg p-3 space-y-2">
+                    <div>
+                      <p className="text-xs text-gray-500 uppercase tracking-wide">
+                        Description
+                      </p>
+                      <p className="text-sm text-gray-800">
+                        {selectedIssue.description}
+                      </p>
+                    </div>
+                    <div>
+                      <p className="text-xs text-gray-500 uppercase tracking-wide">
+                        Location
+                      </p>
+                      <p className="text-sm text-gray-800">
+                        {selectedIssue.location}
+                      </p>
+                    </div>
+                  </div>
+
                   <div className="space-y-2">
                     <label className="block text-sm font-medium">
                       Select Priority Level:

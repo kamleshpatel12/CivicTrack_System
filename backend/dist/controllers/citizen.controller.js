@@ -61,10 +61,11 @@ const getIssuesByCitizen = (req, res) => __awaiter(void 0, void 0, void 0, funct
             res.status(401).json({ message: "Unauthorized" });
             return;
         }
-        // SQL: Get all issues reported by this citizen with issue type details
+        // SQL: Get all issues reported by this citizen with issue type details and images
         const issues = (yield (0, db_1.queryAll)(`SELECT 
         i.id, i.title, i.description, i.issue_type_id, 
-        it.type_name, i.address, i.status, i.created_at, i.priority
+        it.type_name, i.address, i.status, i.created_at, i.priority,
+        i.image_url as image
       FROM issues i
       LEFT JOIN civic_categories it ON i.issue_type_id = it.id
       WHERE i.citizen_id = ?

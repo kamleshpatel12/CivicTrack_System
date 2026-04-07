@@ -1,12 +1,13 @@
 import { Request, Response } from "express";
 import { query, queryOne, queryAll, insert } from "../utils/db";
+import { cloudinary } from "../config/cloudinary";
 
 export const createIssue = async (
   req: Request,
   res: Response
 ): Promise<void> => {
   try {
-    const { title, description, issueType, address } = req.body;
+    const { title, description, issueType, address, image } = req.body;
     const citizenId = (req as any).citizenId;
 
     console.log("=".repeat(60));
@@ -43,25 +44,30 @@ export const createIssue = async (
 
     console.log(`🏢 Department: ${departmentName} (ID: ${departmentId})`);
 
-    // SQL: Check if issue with same title exists
-    const existingIssue = await queryOne(
-      "SELECT id FROM issues WHERE title = ?",
-      [title]
-    );
+    let imageUrl: string | null = null;
 
-    if (existingIssue) {
-      console.log(`⚠️  Issue with title '${title}' already exists`);
-      res
-        .status(400)
-        .json({ message: "Issue with this title already exists" });
-      return;
+    // Upload image if provided
+    if (image) {
+      try {
+        console.log("📸 Uploading image to Cloudinary...");
+        const uploadResponse = await cloudinary.uploader.upload(image, {
+          folder: "civic_issues",
+          resource_type: "auto",
+        });
+
+        imageUrl = uploadResponse.secure_url;
+        console.log("✅ Image uploaded successfully");
+      } catch (imageError) {
+        console.error("⚠️  Image upload failed:", imageError);
+        // Continue without image rather than failing the entire issue creation
+      }
     }
 
     // SQL: Insert issue
     const issueId = await insert(
       `INSERT INTO issues 
-       (citizen_id, issue_type_id, title, description, address, status) 
-       VALUES (?, ?, ?, ?, ?, ?)`,
+       (citizen_id, issue_type_id, title, description, address, status, image_url) 
+       VALUES (?, ?, ?, ?, ?, ?, ?)`,
       [
         citizenId,
         issueTypeId,
@@ -69,6 +75,7 @@ export const createIssue = async (
         description,
         address,
         "Reported",
+        imageUrl,
       ]
     );
 
@@ -89,6 +96,7 @@ export const createIssue = async (
         status: "Reported",
         departmentId,
         departmentName,
+        image: imageUrl,
       },
     });
   } catch (error) {

@@ -310,7 +310,7 @@ export const getHeadAdminIssues = async (
       `SELECT 
         i.id, i.title, i.description, 
         cc.type_name AS issue_type,
-        l.city, l.area_name,
+        i.address AS location,
         i.status,
         i.priority AS priority_name,
         c.full_name AS citizen_name,
@@ -320,7 +320,6 @@ export const getHeadAdminIssues = async (
       FROM issues i
       LEFT JOIN citizens c ON i.citizen_id = c.id
       LEFT JOIN civic_categories cc ON i.issue_type_id = cc.id
-      LEFT JOIN location l ON i.location_id = l.id
       LEFT JOIN admins a ON i.assigned_admin = a.id
       LEFT JOIN department d ON cc.department_id = d.id
       ORDER BY i.created_at DESC`,

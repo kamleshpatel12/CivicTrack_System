@@ -11,9 +11,10 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.updateIssueStatus = exports.getIssueById = exports.getIssues = exports.createIssue = void 0;
 const db_1 = require("../utils/db");
+const cloudinary_1 = require("../config/cloudinary");
 const createIssue = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     try {
-        const { title, description, issueType, address } = req.body;
+        const { title, description, issueType, address, image } = req.body;
         const citizenId = req.citizenId;
         console.log("=".repeat(60));
         console.log("📋 NEW ISSUE REPORTED");
@@ -40,25 +41,34 @@ const createIssue = (req, res) => __awaiter(void 0, void 0, void 0, function* ()
         const departmentName = issueTypeRecord.department_name || "Unknown";
         const departmentId = issueTypeRecord.department_id;
         console.log(`🏢 Department: ${departmentName} (ID: ${departmentId})`);
-        // SQL: Check if issue with same title exists
-        const existingIssue = yield (0, db_1.queryOne)("SELECT id FROM issues WHERE title = ?", [title]);
-        if (existingIssue) {
-            console.log(`⚠️  Issue with title '${title}' already exists`);
-            res
-                .status(400)
-                .json({ message: "Issue with this title already exists" });
-            return;
+        let imageUrl = null;
+        // Upload image if provided
+        if (image) {
+            try {
+                console.log("📸 Uploading image to Cloudinary...");
+                const uploadResponse = yield cloudinary_1.cloudinary.uploader.upload(image, {
+                    folder: "civic_issues",
+                    resource_type: "auto",
+                });
+                imageUrl = uploadResponse.secure_url;
+                console.log("✅ Image uploaded successfully");
+            }
+            catch (imageError) {
+                console.error("⚠️  Image upload failed:", imageError);
+                // Continue without image rather than failing the entire issue creation
+            }
         }
         // SQL: Insert issue
         const issueId = yield (0, db_1.insert)(`INSERT INTO issues 
-       (citizen_id, issue_type_id, title, description, address, status) 
-       VALUES (?, ?, ?, ?, ?, ?)`, [
+       (citizen_id, issue_type_id, title, description, address, status, image_url) 
+       VALUES (?, ?, ?, ?, ?, ?, ?)`, [
             citizenId,
             issueTypeId,
             title,
             description,
             address,
             "Reported",
+            imageUrl,
         ]);
         console.log(`✅ Issue Created Successfully`);
         console.log(`📌 Issue ID: ${issueId}`);
@@ -76,6 +86,7 @@ const createIssue = (req, res) => __awaiter(void 0, void 0, void 0, function* ()
                 status: "Reported",
                 departmentId,
                 departmentName,
+                image: imageUrl,
             },
         });
     }

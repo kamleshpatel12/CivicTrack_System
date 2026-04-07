@@ -9,6 +9,7 @@ const cookie_parser_1 = __importDefault(require("cookie-parser"));
 const admin_routes_1 = __importDefault(require("./routes/admin.routes"));
 const citizen_routes_1 = __importDefault(require("./routes/citizen.routes"));
 const issue_routes_1 = __importDefault(require("./routes/issue.routes"));
+const analytics_routes_1 = __importDefault(require("./routes/analytics.routes"));
 const app = (0, express_1.default)();
 // CORS middleware - allows any localhost port in development
 const corsOptions = {
@@ -29,13 +30,14 @@ const corsOptions = {
     optionsSuccessStatus: 200,
 };
 app.use((0, cors_1.default)(corsOptions));
-app.use(express_1.default.json());
-app.use(express_1.default.urlencoded({ extended: true }));
+app.use(express_1.default.json({ limit: '50mb' }));
+app.use(express_1.default.urlencoded({ extended: true, limit: '50mb' }));
 app.use(express_1.default.static("public"));
 app.use((0, cookie_parser_1.default)());
 app.use("/api/v1", citizen_routes_1.default);
 app.use("/api/v1", admin_routes_1.default);
 app.use("/api/v1", issue_routes_1.default);
+app.use("/api/v1", analytics_routes_1.default);
 app.use("/api", (_req, res) => {
     res.status(404).json({ message: "API route not found" });
 });

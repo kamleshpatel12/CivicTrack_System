@@ -15,30 +15,30 @@ const HowItWorks = () => {
   const steps = [
     {
       icon: Camera,
-      title: "Capture the Issue",
+      title: "Report the Problem",
       description:
-        "Take a clear photo of the infrastructure problem using your mobile device or camera.",
+        "Share a photo and describe the issue.",
       color: "bg-blue-500",
     },
     {
       icon: MapPin,
-      title: "Add Location Details",
+      title: "Add Location",
       description:
-        "GPS automatically captures the exact location, or manually adjust for precision.",
+        "Tell us where the problem is located.",
       color: "bg-green-500",
     },
     {
       icon: Send,
-      title: "Submit Your Report",
+      title: "Submit",
       description:
-        "Add a brief description and submit your report to the appropriate authorities.",
+        "Send your report to authorities.",
       color: "bg-purple-500",
     },
     {
       icon: CheckCircle,
       title: "Track Progress",
       description:
-        "Monitor the status of your report and receive updates when action is taken.",
+        "Follow up on your report status.",
       color: "bg-orange-500",
     },
   ];

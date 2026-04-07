@@ -22,6 +22,7 @@ interface Issues {
   full_name: string;
   created_at: string;
   status: string;
+  image?: string;
 }
 
 const MIN_LOADER_DURATION = 2500; // Minimum loader display time (ms)
@@ -43,11 +44,12 @@ const CitizenHome = () => {
         });
 
         const data = await response.json();
+        let apiIssues: Issues[] = [];
         if (Array.isArray(data.issues)) {
-          setReportedIssues(data.issues);
-        } else {
-          setReportedIssues([]);
+          apiIssues = data.issues;
         }
+
+        setReportedIssues(apiIssues);
       } catch (error) {
         console.error("Error fetching issues:", error);
       } finally {
@@ -151,10 +153,20 @@ const CitizenHome = () => {
                   }`}
                 >
                   <div className="relative bg-gradient-to-r from-blue-100 to-purple-100 h-48 overflow-hidden rounded-t-2xl flex items-center justify-center">
-                    <div className="text-center">
-                      <p className="text-4xl mb-2">📋</p>
-                      <p className="text-sm font-semibold text-gray-600">{issue.type_name}</p>
-                    </div>
+                    {issue.image ? (
+                      <img
+                        src={issue.image}
+                        alt={issue.title}
+                        className="w-full h-full object-cover"
+                      />
+                    ) : (
+                      <div className="text-center">
+                        <p className="text-4xl mb-2">📋</p>
+                        <p className="text-sm font-semibold text-gray-600">
+                          {issue.type_name}
+                        </p>
+                      </div>
+                    )}
                     <div
                       className={`absolute top-3 right-3 px-3 py-1 rounded-full text-xs font-semibold ${getStatusColor(
                         issue.status

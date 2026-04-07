@@ -46,6 +46,7 @@ interface Issues {
   department_name: string;
   priority_level_id?: number | null;
   priority_name?: string | null;
+  image?: string;
 }
 
 const AdminHome = () => {
@@ -86,11 +87,22 @@ const AdminHome = () => {
           },
         });
         const data = await response.json();
+        let apiIssues: Issues[] = [];
         if (Array.isArray(data.issues)) {
-          setIssues(data.issues);
-        } else {
-          setIssues([]);
+          apiIssues = data.issues;
         }
+
+        // Get images from localStorage and attach to API issues
+        const issueImages = JSON.parse(
+          localStorage.getItem("issue_images") || "{}"
+        );
+
+        const issuesWithImages = apiIssues.map((issue) => ({
+          ...issue,
+          image: issueImages[issue.id] || undefined,
+        }));
+
+        setIssues(issuesWithImages);
       } catch (error) {
         console.error("Error fetching issues:", error);
         setIssues([]);
@@ -119,9 +131,11 @@ const AdminHome = () => {
 
       const data = await response.json();
       if (response.ok) {
-        setIssues((prev) =>
-          prev.map((i) => (i.id === issueId ? { ...i, status } : i))
+        // Update local state immediately for UI responsiveness
+        const updatedIssues = issues.map((i) =>
+          i.id === issueId ? { ...i, status } : i
         );
+        setIssues(updatedIssues);
       } else {
         alert(data.message);
       }
@@ -401,6 +415,7 @@ const AdminHome = () => {
                     </Button>
                   </TableHead>
                   <TableHead className="text-gray-700">Priority</TableHead>
+                  <TableHead className="text-gray-700">Image</TableHead>
                   <TableHead className="text-right text-gray-700">
                     Actions
                   </TableHead>
@@ -429,6 +444,17 @@ const AdminHome = () => {
                         </Badge>
                       ) : (
                         <span className="text-gray-400 text-sm">Unassigned</span>
+                      )}
+                    </TableCell>
+                    <TableCell>
+                      {issue.image ? (
+                        <img
+                          src={issue.image}
+                          alt="Issue"
+                          className="h-10 w-10 object-cover rounded border border-gray-200"
+                        />
+                      ) : (
+                        <span className="text-gray-400 text-xs">—</span>
                       )}
                     </TableCell>
                     <TableCell className="text-right">

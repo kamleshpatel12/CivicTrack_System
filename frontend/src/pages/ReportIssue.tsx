@@ -23,6 +23,7 @@ const ReportIssue = () => {
     issueCity: "",
     issueArea: "",
     issueType: "Pothole",
+    issueImage: "" as string,
     location: {
       address: "",
       latitude: null as number | null,
@@ -30,9 +31,46 @@ const ReportIssue = () => {
     },
   });
   const [loading, setLoading] = useState(false);
+  const [imagePreview, setImagePreview] = useState<string>("");
 
   const handleInputChange = (field: string, value: string) => {
     setFormData((prev) => ({ ...prev, [field]: value }));
+  };
+
+  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      // Check file size (5MB max)
+      if (file.size > 5 * 1024 * 1024) {
+        toast.error("Image size must be less than 5MB");
+        return;
+      }
+
+      // Check file type
+      if (!file.type.startsWith("image/")) {
+        toast.error("Please select a valid image file");
+        return;
+      }
+
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        const base64String = reader.result as string;
+        setFormData((prev) => ({
+          ...prev,
+          issueImage: base64String,
+        }));
+        setImagePreview(base64String);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const removeImage = () => {
+    setFormData((prev) => ({
+      ...prev,
+      issueImage: "",
+    }));
+    setImagePreview("");
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -71,6 +109,7 @@ const ReportIssue = () => {
             description: formData.issueDescription,
             issueType: formData.issueType,
             address: address,
+            image: formData.issueImage || null,
           }),
         }
       );
@@ -99,6 +138,7 @@ const ReportIssue = () => {
       label: "Street Light Malfunction",
     },
     { value: "Drainage Blockage", label: "Drainage Blockage" },
+    { value: "Others", label: "Others" },
   ];
 
   return (
@@ -232,6 +272,46 @@ const ReportIssue = () => {
                       required
                     />
                   </div>
+                </div>
+
+                {/* Image Upload Section */}
+                <div className="space-y-4">
+                  <h3 className="text-lg font-medium">Issue Image</h3>
+                  <div className="space-y-2">
+                    <Label htmlFor="issueImage">
+                      Upload Image (Optional)
+                    </Label>
+                    <Input
+                      id="issueImage"
+                      type="file"
+                      accept="image/*"
+                      onChange={handleImageChange}
+                      className="shadow-sm"
+                    />
+                    <p className="text-xs text-slate-500">
+                      Max size: 5MB. Supported formats: JPEG, PNG, GIF, WebP
+                    </p>
+                  </div>
+
+                  {/* Image Preview */}
+                  {imagePreview && (
+                    <div className="mt-4">
+                      <div className="relative bg-slate-100 rounded-lg p-2">
+                        <img
+                          src={imagePreview}
+                          alt="Preview"
+                          className="w-full h-64 object-cover rounded-lg"
+                        />
+                        <button
+                          type="button"
+                          onClick={removeImage}
+                          className="absolute top-4 right-4 bg-red-500 text-white rounded-full p-2 hover:bg-red-600 transition-colors"
+                        >
+                          ✕
+                        </button>
+                      </div>
+                    </div>
+                  )}
                 </div>
 
                 {/* Submit Button */}

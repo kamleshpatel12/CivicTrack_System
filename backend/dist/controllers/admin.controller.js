@@ -166,7 +166,7 @@ const getHandledIssuesByAdmin = (req, res) => __awaiter(void 0, void 0, void 0, 
         // SQL: Get all issues assigned to this admin
         const issues = (yield (0, db_1.queryAll)(`SELECT 
         i.id, i.title, i.description, i.issue_type_id, 
-        i.address, i.status, i.priority,
+        i.address, i.status, i.priority AS priority_name,
         i.created_at, c.full_name
       FROM issues i
       LEFT JOIN citizens c ON i.citizen_id = c.id
@@ -234,7 +234,7 @@ const getHeadAdminIssues = (req, res) => __awaiter(void 0, void 0, void 0, funct
         const issues = (yield (0, db_1.queryAll)(`SELECT 
         i.id, i.title, i.description, 
         cc.type_name AS issue_type,
-        l.city, l.area_name,
+        i.address AS location,
         i.status,
         i.priority AS priority_name,
         c.full_name AS citizen_name,
@@ -244,7 +244,6 @@ const getHeadAdminIssues = (req, res) => __awaiter(void 0, void 0, void 0, funct
       FROM issues i
       LEFT JOIN citizens c ON i.citizen_id = c.id
       LEFT JOIN civic_categories cc ON i.issue_type_id = cc.id
-      LEFT JOIN location l ON i.location_id = l.id
       LEFT JOIN admins a ON i.assigned_admin = a.id
       LEFT JOIN department d ON cc.department_id = d.id
       ORDER BY i.created_at DESC`, []));

@@ -75,11 +75,12 @@ export const getIssuesByCitizen = async (req: Request, res: Response) => {
       return;
     }
 
-    // SQL: Get all issues reported by this citizen with issue type details
+    // SQL: Get all issues reported by this citizen with issue type details and images
     const issues = (await queryAll(
       `SELECT 
         i.id, i.title, i.description, i.issue_type_id, 
-        it.type_name, i.address, i.status, i.created_at, i.priority
+        it.type_name, i.address, i.status, i.created_at, i.priority,
+        i.image_url as image
       FROM issues i
       LEFT JOIN civic_categories it ON i.issue_type_id = it.id
       WHERE i.citizen_id = ?
