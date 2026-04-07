@@ -26,10 +26,10 @@ const createIssue = (req, res) => __awaiter(void 0, void 0, void 0, function* ()
             res.status(400).json({ message: "Please fill all required fields" });
             return;
         }
-        // SQL: Lookup issue_type_id and department from issue_types table
+        // SQL: Lookup issue_type_id and department from civic_categories table
         const issueTypeRecord = yield (0, db_1.queryOne)(`SELECT it.id, it.type_name, it.department_id, d.department_name 
-       FROM issue_types it
-       LEFT JOIN departments d ON it.department_id = d.id
+       FROM civic_categories it
+       LEFT JOIN department d ON it.department_id = d.id
        WHERE it.type_name = ?`, [issueType]);
         if (!issueTypeRecord) {
             console.log(`❌ Issue type '${issueType}' not found in database`);
@@ -95,7 +95,7 @@ const getIssues = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
         // SQL: Get admin's department
         const admin = yield (0, db_1.queryOne)(`SELECT a.department_id, d.department_name 
        FROM admins a
-       LEFT JOIN departments d ON a.department_id = d.id
+       LEFT JOIN department d ON a.department_id = d.id
        WHERE a.id = ?`, [loggedInAdminId]);
         if (!admin) {
             res.status(404).json({ message: "Admin not found" });
@@ -113,6 +113,7 @@ const getIssues = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
         i.description,
         i.address,
         i.status,
+        i.priority,
         i.created_at,
         i.updated_at,
         c.full_name,
@@ -120,8 +121,8 @@ const getIssues = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
         d.department_name
       FROM issues i
       LEFT JOIN citizens c ON i.citizen_id = c.id
-      LEFT JOIN issue_types it ON i.issue_type_id = it.id
-      LEFT JOIN departments d ON it.department_id = d.id
+      LEFT JOIN civic_categories it ON i.issue_type_id = it.id
+      LEFT JOIN department d ON it.department_id = d.id
       WHERE d.id = ?
       ORDER BY i.created_at DESC`, [adminDepartmentId]));
         console.log(`📊 Found ${issues.length} issue(s) for this department`);

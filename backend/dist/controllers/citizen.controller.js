@@ -64,9 +64,9 @@ const getIssuesByCitizen = (req, res) => __awaiter(void 0, void 0, void 0, funct
         // SQL: Get all issues reported by this citizen with issue type details
         const issues = (yield (0, db_1.queryAll)(`SELECT 
         i.id, i.title, i.description, i.issue_type_id, 
-        it.type_name, i.address, i.status, i.created_at
+        it.type_name, i.address, i.status, i.created_at, i.priority
       FROM issues i
-      LEFT JOIN issue_types it ON i.issue_type_id = it.id
+      LEFT JOIN civic_categories it ON i.issue_type_id = it.id
       WHERE i.citizen_id = ?
       ORDER BY i.created_at DESC`, [citizenId]));
         res.json({ issues });
