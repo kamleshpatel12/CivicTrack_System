@@ -45,7 +45,7 @@ export const authMiddleware = (
     //@ts-ignore
     if (decoded.role === "citizen") {
       req.citizenId = decoded.id;
-    } else if (decoded.role === "admin") {
+    } else if (decoded.role === "admin" || decoded.role === "head-admin") {
       req.adminId = decoded.id;
     }
     req.role = decoded.role;

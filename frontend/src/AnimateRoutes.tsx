@@ -6,6 +6,7 @@ import CitizenProfile from "./pages/CitizenProfile";
 import ReportIssue from "./pages/ReportIssue";
 import AdminHome from "./pages/AdminHome";
 import AdminProfile from "./pages/AdminProfile";
+import HeadAdminHome from "./pages/HeadAdminHome";
 import NotFound from "./pages/NotFound";
 import SignIn from "./pages/SignIn";
 import SignUp from "./pages/SignUp";
@@ -108,6 +109,16 @@ export default function AnimatedRoutes() {
             <ProtectedRoute requiredRole="admin">
               <MotionWrapper>
                 <AdminProfile />
+              </MotionWrapper>
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/head-admin"
+          element={
+            <ProtectedRoute requiredRole="head-admin">
+              <MotionWrapper>
+                <HeadAdminHome />
               </MotionWrapper>
             </ProtectedRoute>
           }

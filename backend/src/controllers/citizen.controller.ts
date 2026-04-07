@@ -79,9 +79,9 @@ export const getIssuesByCitizen = async (req: Request, res: Response) => {
     const issues = (await queryAll(
       `SELECT 
         i.id, i.title, i.description, i.issue_type_id, 
-        it.type_name, i.address, i.status, i.created_at
+        it.type_name, i.address, i.status, i.created_at, i.priority
       FROM issues i
-      LEFT JOIN issue_types it ON i.issue_type_id = it.id
+      LEFT JOIN civic_categories it ON i.issue_type_id = it.id
       WHERE i.citizen_id = ?
       ORDER BY i.created_at DESC`,
       [citizenId]

@@ -44,6 +44,8 @@ interface Issues {
   updated_at: string;
   status: string;
   department_name: string;
+  priority_level_id?: number | null;
+  priority_name?: string | null;
 }
 
 const AdminHome = () => {
@@ -54,7 +56,6 @@ const AdminHome = () => {
   const [loading, setLoading] = useState(true);
   const [issues, setIssues] = useState<Issues[]>([]);
   const [departmentName, setDepartmentName] = useState<string>("");
-  const [departmentId, setDepartmentId] = useState<string>("");
   const { hideLoader } = useLoader();
 
   useEffect(() => {
@@ -67,7 +68,6 @@ const AdminHome = () => {
         });
         const data = await response.json();
         setDepartmentName(data.departmentName || "Unknown");
-        setDepartmentId(data.departmentId || "");
       } catch (error) {
         console.error("Error fetching department info:", error);
         setDepartmentName("Unknown");
@@ -120,7 +120,7 @@ const AdminHome = () => {
       const data = await response.json();
       if (response.ok) {
         setIssues((prev) =>
-          prev.map((i) => (i._id === issueId ? { ...i, status } : i))
+          prev.map((i) => (i.id === issueId ? { ...i, status } : i))
         );
       } else {
         alert(data.message);
@@ -145,7 +145,7 @@ const AdminHome = () => {
 
       const data = await response.json();
       if (response.ok) {
-        setIssues((prev) => prev.filter((i) => i._id !== issueId));
+        setIssues((prev) => prev.filter((i) => i.id !== issueId));
       } else {
         alert(data.message);
       }
@@ -223,6 +223,8 @@ const AdminHome = () => {
                 Admin Dashboard
               </h1>
               <p className="text-muted-foreground mt-2">
+                {departmentName && <span className="font-semibold text-slate-700">{departmentName} Department</span>}
+                {departmentName && <span className="mx-2">•</span>}
                 Manage and resolve community issues
               </p>
             </div>
@@ -398,6 +400,7 @@ const AdminHome = () => {
                         ))}
                     </Button>
                   </TableHead>
+                  <TableHead className="text-gray-700">Priority</TableHead>
                   <TableHead className="text-right text-gray-700">
                     Actions
                   </TableHead>
@@ -412,6 +415,21 @@ const AdminHome = () => {
                       <Badge className={getStatusColor(issue.status)}>
                         {issue.status}
                       </Badge>
+                    </TableCell>
+                    <TableCell>
+                      {issue.priority_name ? (
+                        <Badge
+                          className={`
+                            ${issue.priority_name.toLowerCase() === "high" ? "bg-red-100 text-red-800" : ""}
+                            ${issue.priority_name.toLowerCase() === "medium" ? "bg-yellow-100 text-yellow-800" : ""}
+                            ${issue.priority_name.toLowerCase() === "low" ? "bg-green-100 text-green-800" : ""}
+                          `}
+                        >
+                          {issue.priority_name}
+                        </Badge>
+                      ) : (
+                        <span className="text-gray-400 text-sm">Unassigned</span>
+                      )}
                     </TableCell>
                     <TableCell className="text-right">
                       <div className="flex justify-end gap-2">

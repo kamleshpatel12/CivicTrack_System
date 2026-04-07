@@ -1,4 +1,6 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
+import { useAuth } from "../contexts/AuthContext";
 import Header from "../components/Header.tsx";
 import Features from "../components/Features.tsx";
 import HowItWorks from "../components/HowItWorks.tsx";
@@ -10,6 +12,21 @@ import { AuthProvider } from "../contexts/AuthContext.tsx";
 const Index = () => {
   const [featuresAnimationKey, setFeaturesAnimationKey] = useState(0);
   const [howItWorksAnimationKey, setHowItWorksAnimationKey] = useState(0);
+  const navigate = useNavigate();
+  const { user } = useAuth();
+
+  useEffect(() => {
+    // Auto-redirect logged-in users to their dashboard
+    if (user) {
+      if (user.role === "head-admin") {
+        navigate("/head-admin");
+      } else if (user.role === "admin") {
+        navigate("/admin");
+      } else if (user.role === "citizen") {
+        navigate("/citizen");
+      }
+    }
+  }, [user, navigate]);
 
   const handleFeaturesClick = () => {
     setFeaturesAnimationKey((prev) => prev + 1);
