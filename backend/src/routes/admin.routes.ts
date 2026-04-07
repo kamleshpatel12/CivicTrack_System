@@ -12,6 +12,9 @@ import {
   getHandledIssuesByAdmin,
   updateAdminProfile,
   updateIssueStatus,
+  getHeadAdminIssues,
+  assignIssuePriority,
+  getIssuePriorityHistory,
 } from "../controllers/admin.controller";
 import { getIssues } from "../controllers/issues.controllers";
 
@@ -36,5 +39,18 @@ router.put("/admin/:id", authMiddleware, updateAdminProfile);
 router.put("/admin/issue/:id/status", authMiddleware, updateIssueStatus);
 
 router.delete("/issue/admin/:issueid", authMiddleware, deleteIssueByAdmin);
+
+// Head Admin Routes
+router.get("/admin/head-admin-issues", authMiddleware, getHeadAdminIssues);
+
+router.get("/admin/head/all-issues", authMiddleware, getHeadAdminIssues);
+
+router.post("/admin/head/assign-priority", authMiddleware, assignIssuePriority);
+
+router.get(
+  "/admin/head/priority-history/:issueId",
+  authMiddleware,
+  getIssuePriorityHistory
+);
 
 export default router;

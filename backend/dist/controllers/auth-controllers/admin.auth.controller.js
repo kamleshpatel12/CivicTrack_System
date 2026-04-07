@@ -28,30 +28,39 @@ const signupSchema = zod_1.z.object({
         .string()
         .length(10, { message: "Phone number must be exactly 10 digits" })
         .trim(),
-    department: zod_1.z.string().trim(),
+    department: zod_1.z.string().trim().optional(),
     employeeId: zod_1.z.string().min(3, { message: "Employee ID is required" }).trim(),
+    isHeadAdmin: zod_1.z.boolean().optional().default(false),
 });
 const adminSignup = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     try {
         const parsedData = signupSchema.parse(req.body);
-        const { fullName, password, email, phonenumber, department, employeeId, } = parsedData;
+        const { fullName, password, email, phonenumber, department, employeeId, isHeadAdmin, } = parsedData;
         // SQL: Check if the admin already exists
         const existingUser = yield (0, db_1.queryOne)("SELECT id FROM admins WHERE email = ? OR employee_id = ?", [email, employeeId]);
         if (existingUser) {
             res.status(400).json({ message: "User already exists" });
             return;
         }
-        // SQL: Get department ID (default to 1 if not found)
-        const depResult = yield (0, db_1.queryOne)("SELECT id FROM departments WHERE department_name = ? LIMIT 1", [department]);
-        const departmentId = (depResult === null || depResult === void 0 ? void 0 : depResult.id) || 1;
+        // SQL: Get department ID (only required for regular admins)
+        let departmentId = null;
+        if (!isHeadAdmin && department) {
+            const depResult = yield (0, db_1.queryOne)("SELECT id FROM department WHERE department_name = ? LIMIT 1", [department]);
+            departmentId = (depResult === null || depResult === void 0 ? void 0 : depResult.id) || null;
+        }
         // Hash password
         const hashedPassword = yield bcryptjs_1.default.hash(password, 10);
         // SQL: Create new admin
         const adminId = yield (0, db_1.insert)("INSERT INTO admins (full_name, email, phone_number, password, department_id, employee_id, is_active) VALUES (?, ?, ?, ?, ?, ?, ?)", [fullName, email, phonenumber, hashedPassword, departmentId, employeeId, true]);
-        console.log("Admin created with ID:", adminId);
+        // If head admin, insert into head_admin table
+        if (isHeadAdmin) {
+            yield (0, db_1.insert)("INSERT INTO head_admin (admin_id) VALUES (?)", [adminId]);
+        }
+        console.log(`${isHeadAdmin ? 'Head Admin' : 'Admin'} created with ID:`, adminId);
         res.status(200).json({
-            message: "Admin Signed up!",
-            adminId: adminId
+            message: `${isHeadAdmin ? 'Head Admin' : 'Admin'} Signed up!`,
+            adminId: adminId,
+            isHeadAdmin: isHeadAdmin
         });
     }
     catch (err) {
@@ -72,7 +81,7 @@ exports.adminSignup = adminSignup;
 const adminSignin = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     try {
         const { email, password, employeeId } = req.body;
-        // SQL: Find admin by email and employee_id with department info
+        // SQL: Find admin by email and employee_id with department info and check head admin table
         const existingUser = yield (0, db_1.queryOne)(`SELECT 
         a.id, 
         a.full_name, 
@@ -81,9 +90,11 @@ const adminSignin = (req, res) => __awaiter(void 0, void 0, void 0, function* ()
         a.password, 
         a.department_id,
         a.employee_id,
+        CASE WHEN ha.admin_id IS NOT NULL THEN 1 ELSE 0 END as is_head_admin,
         d.department_name as department
       FROM admins a
-      LEFT JOIN departments d ON a.department_id = d.id
+      LEFT JOIN department d ON a.department_id = d.id
+      LEFT JOIN head_admin ha ON a.id = ha.admin_id
       WHERE a.email = ? AND a.employee_id = ? AND a.is_active = TRUE`, [email, employeeId]);
         if (!existingUser) {
             res.status(404).json({ message: "Admin not found!" });
@@ -98,7 +109,7 @@ const adminSignin = (req, res) => __awaiter(void 0, void 0, void 0, function* ()
         // Generate JWT token
         const token = jsonwebtoken_1.default.sign({
             id: existingUser.id,
-            role: "admin",
+            role: existingUser.is_head_admin ? "head-admin" : "admin",
         }, process.env.JWT_PASSWORD, { expiresIn: "1d" });
         res.json({
             token,
@@ -107,9 +118,10 @@ const adminSignin = (req, res) => __awaiter(void 0, void 0, void 0, function* ()
                 fullName: existingUser.full_name,
                 email: existingUser.email,
                 employeeId: existingUser.employee_id,
-                department: existingUser.department || "Unknown",
+                department: existingUser.is_head_admin ? "Head Admin" : (existingUser.department || "Unknown"),
                 phonenumber: existingUser.phone_number,
-                role: "admin",
+                role: existingUser.is_head_admin ? "head-admin" : "admin",
+                isHeadAdmin: existingUser.is_head_admin,
             },
         });
     }

@@ -11,10 +11,11 @@ interface User {
   id: string;
   email: string;
   fullName: string;
-  role: "citizen" | "admin";
+  role: "citizen" | "admin" | "head-admin";
   phonenumber?: string;
   department?: string;
   adminAccessCode?: string;
+  isHeadAdmin?: boolean;
 }
 
 interface AuthContextType {
@@ -23,10 +24,10 @@ interface AuthContextType {
   login: (
     email: string,
     password: string,
-    role: "citizen" | "admin",
+    role: "citizen" | "admin" | "head-admin",
     adminAccessCode?: string
   ) => Promise<boolean>;
-  register: (userData: any, role: "citizen" | "admin") => Promise<void>;
+  register: (userData: any, role: "citizen" | "admin" | "head-admin") => Promise<void>;
   logout: () => void;
   isLoading: boolean;
   updateUserProfile: (updatedData: Partial<User>) => Promise<void>;
@@ -79,12 +80,12 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const login = async (
     email: string,
     password: string,
-    role: "citizen" | "admin",
+    role: "citizen" | "admin" | "head-admin",
     employeeId?: string
   ) => {
     setIsLoading(true);
     try {
-      const endpoint = role === "admin" ? "admin/signin" : "citizen/signin";
+      const endpoint = role === "citizen" ? "citizen/signin" : "admin/signin";
 
       const body: any = { email, password };
 
@@ -93,12 +94,12 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         return false;
       }
 
-      if (role === "admin" && !employeeId) {
+      if ((role === "admin" || role === "head-admin") && !employeeId) {
         alert("Employee ID is required for admin login.");
         return false;
       }
 
-      if (role === "admin" && employeeId) {
+      if ((role === "admin" || role === "head-admin") && employeeId) {
         body.employeeId = employeeId;
       }
 
@@ -121,7 +122,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         id: result.user.id,
         email: result.user.email,
         fullName: result.user.fullName || "Guest",
-        role: result.user.role,
+        role: role === "head-admin" ? "head-admin" : result.user.role,
         phonenumber: result.user.phonenumber || "",
         department: result.user.department || "",
         adminAccessCode: result.user.adminAccessCode || "",
@@ -144,7 +145,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     }
   };
 
-  const register = async (userData: any, role: "citizen" | "admin") => {
+  const register = async (userData: any, role: "citizen" | "admin" | "head-admin") => {
     setIsLoading(true);
     try {
       const endpoint = role === "admin" ? "admin/signup" : "citizen/signup";

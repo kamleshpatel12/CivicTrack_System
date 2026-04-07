@@ -1,4 +1,4 @@
-import { ArrowRight, Camera, MapPin, Users } from "lucide-react";
+import { ArrowRight, Camera, MapPin } from "lucide-react";
 import { Button } from "./ui/button";
 import { Link } from "react-router-dom";
 import { useAuth } from "../contexts/AuthContext";

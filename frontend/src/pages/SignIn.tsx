@@ -1,6 +1,6 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Eye, EyeOff } from "lucide-react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { toast } from "sonner";
 import {
   Card,
@@ -23,11 +23,25 @@ const SignIn = () => {
     password: "",
     employeeId: "",
   });
-  const [activeTab, setActiveTab] = useState<"citizen" | "admin">("citizen");
+  const [headAdminForm, setHeadAdminForm] = useState({
+    email: "",
+    password: "",
+    employeeId: "",
+  });
+  const [activeTab, setActiveTab] = useState<"citizen" | "admin" | "head-admin">("citizen");
 
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const roleParam = searchParams.get("role") as "citizen" | "admin" | "head-admin" | null;
   const { login } = useAuth();
   const { showLoader, hideLoader } = useLoader();
+
+  // Set active tab based on URL parameter
+  useEffect(() => {
+    if (roleParam && ["citizen", "admin", "head-admin"].includes(roleParam)) {
+      setActiveTab(roleParam);
+    }
+  }, [roleParam]);
 
   const handleSignIn = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -44,13 +58,23 @@ const SignIn = () => {
           login(citizenForm.email, citizenForm.password, "citizen"),
           minLoaderDuration,
         ]).then(([res]) => res);
-      } else {
+      } else if (activeTab === "admin") {
         result = await Promise.all([
           login(
             adminForm.email,
             adminForm.password,
             "admin",
             adminForm.employeeId
+          ),
+          minLoaderDuration,
+        ]).then(([res]) => res);
+      } else {
+        result = await Promise.all([
+          login(
+            headAdminForm.email,
+            headAdminForm.password,
+            "head-admin",
+            headAdminForm.employeeId
           ),
           minLoaderDuration,
         ]).then(([res]) => res);
@@ -61,11 +85,17 @@ const SignIn = () => {
           description:
             activeTab === "citizen"
               ? "Welcome back!"
-              : "Welcome back, Administrator!",
+              : activeTab === "admin"
+              ? "Welcome back, Administrator!"
+              : "Welcome back, Head Admin!",
         });
-        navigate(activeTab === "citizen" ? "/citizen" : "/admin", {
-          replace: true,
-        });
+        if (activeTab === "citizen") {
+          navigate("/citizen", { replace: true });
+        } else if (activeTab === "admin") {
+          navigate("/admin", { replace: true });
+        } else {
+          navigate("/head-admin", { replace: true });
+        }
       } else {
         toast.error("Sign In Failed!", {
           description: "Invalid credentials",
@@ -108,26 +138,42 @@ const SignIn = () => {
           <CardContent>
             <div className="border-b border-gray-200 mb-6">
               <div className="flex space-x-2">
-                <button
-                  onClick={() => setActiveTab("citizen")}
-                  className={`px-4 py-2 font-medium transition-colors ${
-                    activeTab === "citizen"
-                      ? "text-black border-b-2 border-black"
-                      : "text-gray-600 border-b-2 border-transparent"
-                  }`}
-                >
-                  Citizen
-                </button>
-                <button
-                  onClick={() => setActiveTab("admin")}
-                  className={`px-4 py-2 font-medium transition-colors ${
-                    activeTab === "admin"
-                      ? "text-black border-b-2 border-black"
-                      : "text-gray-600 border-b-2 border-transparent"
-                  }`}
-                >
-                  Administrator
-                </button>
+                {(!roleParam || roleParam === "citizen") && (
+                  <button
+                    onClick={() => setActiveTab("citizen")}
+                    className={`px-4 py-2 font-medium transition-colors ${
+                      activeTab === "citizen"
+                        ? "text-black border-b-2 border-black"
+                        : "text-gray-600 border-b-2 border-transparent"
+                    }`}
+                  >
+                    Citizen
+                  </button>
+                )}
+                {(!roleParam || roleParam === "admin") && (
+                  <button
+                    onClick={() => setActiveTab("admin")}
+                    className={`px-4 py-2 font-medium transition-colors ${
+                      activeTab === "admin"
+                        ? "text-black border-b-2 border-black"
+                        : "text-gray-600 border-b-2 border-transparent"
+                    }`}
+                  >
+                    Administrator
+                  </button>
+                )}
+                {(!roleParam || roleParam === "head-admin") && (
+                  <button
+                    onClick={() => setActiveTab("head-admin")}
+                    className={`px-4 py-2 font-medium transition-colors ${
+                      activeTab === "head-admin"
+                        ? "text-black border-b-2 border-black"
+                        : "text-gray-600 border-b-2 border-transparent"
+                    }`}
+                  >
+                    Head Admin
+                  </button>
+                )}
               </div>
             </div>
 
@@ -247,6 +293,73 @@ const SignIn = () => {
                 </div>
                 <Button type="submit" className="w-full">
                   Sign In as Administrator
+                </Button>
+              </form>
+            )}
+
+            {activeTab === "head-admin" && (
+              <form onSubmit={handleSignIn} className="space-y-4">
+                <div>
+                  <Label htmlFor="head-admin-email">Email</Label>
+                  <Input
+                    id="head-admin-email"
+                    type="email"
+                    value={headAdminForm.email}
+                    onChange={(e) =>
+                      setHeadAdminForm({
+                        ...headAdminForm,
+                        email: e.target.value,
+                      })
+                    }
+                    required
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="head-admin-password">Password</Label>
+                  <div className="relative">
+                    <Input
+                      id="head-admin-password"
+                      type={showPassword ? "text" : "password"}
+                      value={headAdminForm.password}
+                      onChange={(e) =>
+                        setHeadAdminForm({
+                          ...headAdminForm,
+                          password: e.target.value,
+                        })
+                      }
+                      required
+                    />
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      className="absolute right-0 top-0 h-full px-3 py-2"
+                      onClick={() => setShowPassword(!showPassword)}
+                    >
+                      {showPassword ? (
+                        <EyeOff className="h-4 w-4" />
+                      ) : (
+                        <Eye className="h-4 w-4" />
+                      )}
+                    </Button>
+                  </div>
+                </div>
+                <div>
+                  <Label htmlFor="head-admin-code">Employee ID</Label>
+                  <Input
+                    id="head-admin-code"
+                    value={headAdminForm.employeeId}
+                    onChange={(e) =>
+                      setHeadAdminForm({
+                        ...headAdminForm,
+                        employeeId: e.target.value,
+                      })
+                    }
+                    required
+                  />
+                </div>
+                <Button type="submit" className="w-full">
+                  Sign In as Head Admin
                 </Button>
               </form>
             )}

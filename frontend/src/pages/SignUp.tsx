@@ -1,6 +1,5 @@
 import React, { useState } from "react";
 import { Eye, EyeOff } from "lucide-react";
-import civicIssueLogo from "../assets/civic_logo.png";
 import { Link, useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 
@@ -45,11 +44,21 @@ const SignUp = () => {
     confirmPassword: "",
     agreeToTerms: false,
   });
+  const [headAdminForm, setHeadAdminForm] = useState({
+    fullName: "",
+    email: "",
+    phonenumber: "",
+    employeeId: "",
+    password: "",
+    confirmPassword: "",
+    agreeToTerms: false,
+  });
 
   const [citizenErrors, setCitizenErrors] = useState<Record<string, string>>(
     {}
   );
   const [adminErrors, setAdminErrors] = useState<Record<string, string>>({});
+  const [headAdminErrors, setHeadAdminErrors] = useState<Record<string, string>>({});
 
   const [activeTab, setActiveTab] = useState("citizen");
   const navigate = useNavigate();
@@ -200,6 +209,82 @@ const SignUp = () => {
     }
   };
 
+  // Head Admin signup handler
+  const handleHeadAdminSignUp = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setHeadAdminErrors({});
+
+    if (!validatePassword(headAdminForm.password)) {
+      toast.error(
+        "Password must be at least 4 characters."
+      );
+      return;
+    }
+    if (headAdminForm.password !== headAdminForm.confirmPassword) {
+      toast.error("Passwords do not match.");
+      return;
+    }
+    if (!headAdminForm.agreeToTerms) {
+      toast.error("Please agree to the terms and conditions.");
+      return;
+    }
+    if (
+      !headAdminForm.fullName.trim() ||
+      !headAdminForm.email.trim() ||
+      !headAdminForm.phonenumber.trim() ||
+      !headAdminForm.employeeId.trim()
+    ) {
+      toast.error("Please fill all required fields.");
+      return;
+    }
+    if (
+      headAdminForm.phonenumber.trim().length !== 10 ||
+      !/^\d{10}$/.test(headAdminForm.phonenumber.trim())
+    ) {
+      toast.error("Phone number must be exactly 10 digits.");
+      return;
+    }
+    if (headAdminForm.employeeId.trim().length < 3) {
+      toast.error("Employee ID must be at least 3 characters.");
+      return;
+    }
+
+    try {
+      const response = await fetch(`${VITE_BACKEND_URL}/api/v1/admin/signup`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          fullName: headAdminForm.fullName,
+          email: headAdminForm.email,
+          password: headAdminForm.password,
+          phonenumber: headAdminForm.phonenumber,
+          employeeId: headAdminForm.employeeId.trim(),
+          isHeadAdmin: true,
+        }),
+      });
+
+      const data = await response.json();
+
+      if (response.ok) {
+        toast.success("Head Admin Registration Successful! Pending approval.");
+        navigate("/signin?role=head-admin");
+      } else if (data.errors && Array.isArray(data.errors)) {
+        const errs: Record<string, string> = {};
+        data.errors.forEach((err: any) => {
+          if (err.path && err.path.length > 0) {
+            errs[err.path[0]] = err.message;
+          }
+        });
+        setHeadAdminErrors(errs);
+      } else {
+        toast.error(data.message || "Signup failed");
+      }
+    } catch (error) {
+      toast.error("Something went wrong! Please try again.");
+      console.error(error);
+    }
+  };
+
   return (
     <div className="min-h-screen flex items-center justify-center p-4 relative overflow-hidden">
       <div className="pointer-events-none fixed inset-0 -z-10 bg-[#f0f7f5]" />
@@ -226,7 +311,7 @@ const SignUp = () => {
           </CardHeader>
           <CardContent>
             <Tabs value={activeTab} onValueChange={setActiveTab}>
-              <TabsList className="grid w-full grid-cols-2 rounded-full bg-gray-100 p-1">
+              <TabsList className="grid w-full grid-cols-3 rounded-full bg-gray-100 p-1">
                 <TabsTrigger
                   value="citizen"
                   className="rounded-full"
@@ -238,6 +323,12 @@ const SignUp = () => {
                   className="rounded-full"
                 >
                   Administrator
+                </TabsTrigger>
+                <TabsTrigger
+                  value="head-admin"
+                  className="rounded-full"
+                >
+                  Head Admin
                 </TabsTrigger>
               </TabsList>
 
@@ -663,6 +754,211 @@ const SignUp = () => {
                   ← Back to Home
                 </Link>
               </div>
+
+              {/* Head Admin Tab Content */}
+              <TabsContent value="head-admin">
+                <AnimatePresence mode="wait">
+                  {activeTab === "head-admin" && (
+                    <motion.div
+                      key="head-admin-motion"
+                      initial={{ opacity: 0, x: 32 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      exit={{ opacity: 0, x: -32 }}
+                      transition={{ duration: 0.33, ease: "easeOut" }}
+                      className="mt-6"
+                    >
+                      <form
+                        onSubmit={handleHeadAdminSignUp}
+                        className="space-y-4"
+                      >
+                        <div className="space-y-2">
+                          <Label htmlFor="head-admin-fullName">Full Name</Label>
+                          <Input
+                            id="head-admin-fullName"
+                            value={headAdminForm.fullName}
+                            onChange={(e) =>
+                              setHeadAdminForm({
+                                ...headAdminForm,
+                                fullName: e.target.value,
+                              })
+                            }
+                            required
+                          />
+                          {headAdminErrors.fullName && (
+                            <p className="text-red-600 text-sm">
+                              {headAdminErrors.fullName}
+                            </p>
+                          )}
+                        </div>
+                        <div className="space-y-2">
+                          <Label htmlFor="head-admin-email">Email</Label>
+                          <Input
+                            id="head-admin-email"
+                            type="email"
+                            value={headAdminForm.email}
+                            onChange={(e) =>
+                              setHeadAdminForm({
+                                ...headAdminForm,
+                                email: e.target.value,
+                              })
+                            }
+                            required
+                          />
+                          {headAdminErrors.email && (
+                            <p className="text-red-600 text-sm">
+                              {headAdminErrors.email}
+                            </p>
+                          )}
+                        </div>
+                        <div className="space-y-2">
+                          <Label htmlFor="head-admin-phone">Phone Number</Label>
+                          <Input
+                            id="head-admin-phone"
+                            value={headAdminForm.phonenumber}
+                            onChange={(e) =>
+                              setHeadAdminForm({
+                                ...headAdminForm,
+                                phonenumber: e.target.value,
+                              })
+                            }
+                            required
+                          />
+                          {headAdminErrors.phonenumber && (
+                            <p className="text-red-600 text-sm">
+                              {headAdminErrors.phonenumber}
+                            </p>
+                          )}
+                        </div>
+                        <div className="space-y-2">
+                          <Label htmlFor="head-admin-employeeId">Officer ID</Label>
+                          <Input
+                            id="head-admin-employeeId"
+                            value={headAdminForm.employeeId}
+                            onChange={(e) =>
+                              setHeadAdminForm({
+                                ...headAdminForm,
+                                employeeId: e.target.value,
+                              })
+                            }
+                            required
+                          />
+                          {headAdminErrors.employeeId && (
+                            <p className="text-red-600 text-sm">
+                              {headAdminErrors.employeeId}
+                            </p>
+                          )}
+                        </div>
+                        <div className="space-y-2">
+                          <Label htmlFor="head-admin-password">Password</Label>
+                          <div className="relative">
+                            <Input
+                              id="head-admin-password"
+                              type={showPassword ? "text" : "password"}
+                              value={headAdminForm.password}
+                              onChange={(e) =>
+                                setHeadAdminForm({
+                                  ...headAdminForm,
+                                  password: e.target.value,
+                                })
+                              }
+                              required
+                            />
+                            <button
+                              type="button"
+                              onClick={() => setShowPassword(!showPassword)}
+                              className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500"
+                            >
+                              {showPassword ? (
+                                <EyeOff className="w-4 h-4" />
+                              ) : (
+                                <Eye className="w-4 h-4" />
+                              )}
+                            </button>
+                          </div>
+                          {headAdminErrors.password && (
+                            <p className="text-red-600 text-sm">
+                              {headAdminErrors.password}
+                            </p>
+                          )}
+                        </div>
+                        <div className="space-y-2">
+                          <Label htmlFor="head-admin-confirm-password">
+                            Confirm Password
+                          </Label>
+                          <div className="relative">
+                            <Input
+                              id="head-admin-confirm-password"
+                              type={showConfirmPassword ? "text" : "password"}
+                              value={headAdminForm.confirmPassword}
+                              onChange={(e) =>
+                                setHeadAdminForm({
+                                  ...headAdminForm,
+                                  confirmPassword: e.target.value,
+                                })
+                              }
+                              required
+                            />
+                            <button
+                              type="button"
+                              onClick={() =>
+                                setShowConfirmPassword(!showConfirmPassword)
+                              }
+                              className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500"
+                            >
+                              {showConfirmPassword ? (
+                                <EyeOff className="w-4 h-4" />
+                              ) : (
+                                <Eye className="w-4 h-4" />
+                              )}
+                            </button>
+                          </div>
+                          {headAdminErrors.confirmPassword && (
+                            <p className="text-red-600 text-sm">
+                              {headAdminErrors.confirmPassword}
+                            </p>
+                          )}
+                        </div>
+                        <div className="flex items-center space-x-2">
+                          <Checkbox
+                            id="head-admin-terms"
+                            checked={headAdminForm.agreeToTerms}
+                            onCheckedChange={(checked) =>
+                              setHeadAdminForm({
+                                ...headAdminForm,
+                                agreeToTerms: checked as boolean,
+                              })
+                            }
+                          />
+                          <label
+                            htmlFor="head-admin-terms"
+                            className="text-sm text-gray-600 cursor-pointer"
+                          >
+                            I agree to the{" "}
+                            <a href="#" className="text-primary font-semibold">
+                              Terms and Conditions
+                            </a>
+                          </label>
+                        </div>
+                        <Button
+                          type="submit"
+                          className="w-full bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800"
+                        >
+                          Register as Head Admin
+                        </Button>
+                      </form>
+                      <p className="text-center text-sm text-gray-600 mt-4">
+                        Already have an account?{" "}
+                        <Link
+                          to="/signin"
+                          className="text-primary font-semibold hover:underline"
+                        >
+                          Sign in
+                        </Link>
+                      </p>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+              </TabsContent>
             </Tabs>
           </CardContent>
         </Card>

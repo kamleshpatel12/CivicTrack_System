@@ -22,11 +22,11 @@ export const createIssue = async (
       return;
     }
 
-    // SQL: Lookup issue_type_id and department from issue_types table
+    // SQL: Lookup issue_type_id and department from civic_categories table
     const issueTypeRecord = await queryOne(
       `SELECT it.id, it.type_name, it.department_id, d.department_name 
-       FROM issue_types it
-       LEFT JOIN departments d ON it.department_id = d.id
+       FROM civic_categories it
+       LEFT JOIN department d ON it.department_id = d.id
        WHERE it.type_name = ?`,
       [issueType]
     );
@@ -110,7 +110,7 @@ export const getIssues = async (req: Request, res: Response) => {
     const admin = await queryOne(
       `SELECT a.department_id, d.department_name 
        FROM admins a
-       LEFT JOIN departments d ON a.department_id = d.id
+       LEFT JOIN department d ON a.department_id = d.id
        WHERE a.id = ?`,
       [loggedInAdminId]
     );
@@ -135,6 +135,7 @@ export const getIssues = async (req: Request, res: Response) => {
         i.description,
         i.address,
         i.status,
+        i.priority,
         i.created_at,
         i.updated_at,
         c.full_name,
@@ -142,8 +143,8 @@ export const getIssues = async (req: Request, res: Response) => {
         d.department_name
       FROM issues i
       LEFT JOIN citizens c ON i.citizen_id = c.id
-      LEFT JOIN issue_types it ON i.issue_type_id = it.id
-      LEFT JOIN departments d ON it.department_id = d.id
+      LEFT JOIN civic_categories it ON i.issue_type_id = it.id
+      LEFT JOIN department d ON it.department_id = d.id
       WHERE d.id = ?
       ORDER BY i.created_at DESC`,
       [adminDepartmentId]
